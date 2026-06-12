@@ -1,6 +1,6 @@
 # fpmath benchmark details
 
-This document explains exactly what `benchmark.c` measures, how the inputs are built, and what each reported row means.
+This document explains exactly what the benchmark suite measures, how the inputs are built, and what each reported row means.
 
 ## Goal of the benchmark
 
@@ -19,14 +19,14 @@ The benchmark is intentionally arithmetic-focused. The DDA, sprite, and rotoscal
 ## How to run it
 
 ```sh
-cc -std=c99 -O3 -Wall -Wextra -pedantic src/tests/benchmark.c -o benchmark
-./benchmark
+make benchmark
+./build/benchmark
 ```
 
 Optional arguments:
 
 ```sh
-./benchmark [sample-count] [repeat-count]
+./build/benchmark [sample-count] [repeat-count]
 ```
 
 Defaults:
@@ -61,7 +61,7 @@ Each table also prints a `fixed/float` ratio:
 
 ### Debug checks are disabled for the benchmark
 
-Before including `fpmath.h`, `benchmark.c` sets:
+Before including `fpmath.h`, `src/bench/common.h` sets:
 
 ```c
 #define FIX32_ENABLE_DEBUG_CHECKS 0
@@ -74,10 +74,10 @@ Rationale:
 
 ### The benchmark prevents dead-code elimination
 
-The file uses:
+The shared benchmark module defines:
 
-- `static volatile int64_t g_int_sink`
-- `static volatile double g_float_sink`
+- `volatile int64_t g_int_sink`
+- `volatile double g_float_sink`
 
 Each benchmark accumulates a checksum and stores it into one of these sinks at the end.
 
@@ -89,7 +89,7 @@ All benchmark inputs are generated once in `benchmark_data_init()` and reused ac
 
 ### Pseudorandom generator
 
-The file uses a simple linear congruential generator:
+The shared benchmark module uses a simple linear congruential generator:
 
 ```c
 state = state * 1664525u + 1013904223u;
@@ -491,7 +491,7 @@ So the results should be interpreted as:
 
 ## Summary
 
-`benchmark.c` is structured to answer four separate performance questions:
+The benchmark suite is structured to answer four separate performance questions:
 
 1. What is the isolated cost of the fixed-point primitives?
 2. How do fixed and float behave in an incremental line-stepping workload?

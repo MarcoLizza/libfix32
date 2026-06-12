@@ -1,19 +1,19 @@
 # fpmath benchmark report
 
-This report captures a benchmark run of `benchmark.c` after adding scalar, DDA, sprite-scaler, and rotoscaler workloads. The analysis is written with a game engine in mind, especially the blitting system and affine sprite pipeline.
+This report captures a run of the benchmark suite after adding scalar, DDA, sprite-scaler, and rotoscaler workloads. The analysis is written with a game engine in mind, especially the blitting system and affine sprite pipeline.
 
 ## Run configuration
 
 Build:
 
 ```sh
-cc -std=c99 -O3 -Wall -Wextra -pedantic src/tests/benchmark.c -o benchmark
+make benchmark
 ```
 
 Execution:
 
 ```sh
-./benchmark 8192 100
+./build/benchmark 8192 100
 ```
 
 Parameters:
@@ -29,7 +29,7 @@ Rationale:
 
 Benchmark mode:
 
-- `benchmark.c` disables `FIX32_ENABLE_DEBUG_CHECKS` before including the header.
+- `src/bench/common.h` disables `FIX32_ENABLE_DEBUG_CHECKS` before including the header.
 - These numbers therefore describe arithmetic behavior, not debug-assert overhead.
 
 ## Raw output

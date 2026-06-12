@@ -1,6 +1,6 @@
 # fpmath design recap
 
-This document summarizes the design choices and rationale behind the header-only fixed-point module in `fpmath.h` and the associated benchmark in `benchmark.c`.
+This document summarizes the design choices and rationale behind the header-only fixed-point module in `fpmath.h` and the associated benchmark suite in `src/bench`.
 
 ## Goals
 
@@ -122,7 +122,7 @@ What is checked in debug builds:
 
 Benchmark note:
 
-- `benchmark.c` forces `FIX32_ENABLE_DEBUG_CHECKS` to `0` before including the header.
+- `src/bench/common.h` forces `FIX32_ENABLE_DEBUG_CHECKS` to `0` before including the header.
 - This keeps the timing focused on arithmetic cost rather than debug assertion overhead.
 
 Interaction with the multiply-range hint:
