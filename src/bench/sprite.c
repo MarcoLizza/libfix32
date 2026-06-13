@@ -95,7 +95,7 @@ static void bench_float_sprite_scaler(const sprite_case_t *sprite_case,
         (float)sprite_case->src_width / (float)sprite_case->dest_width;
     const float step_y =
         (float)sprite_case->src_height / (float)sprite_case->dest_height;
-    double checksum = 0.0;
+    int64_t checksum = 0;
     size_t repeat;
 
     for (repeat = 0; repeat < repeat_count; ++repeat) {
@@ -113,7 +113,7 @@ static void bench_float_sprite_scaler(const sprite_case_t *sprite_case,
                     benchmark_float_floor_to_int(source_x);
 
                 checksum +=
-                    (double)((sample_y * sprite_case->src_width) + sample_x);
+                    (int64_t)sample_y * sprite_case->src_width + sample_x;
                 source_x += step_x;
             }
 
@@ -121,7 +121,7 @@ static void bench_float_sprite_scaler(const sprite_case_t *sprite_case,
         }
     }
 
-    g_float_sink = checksum;
+    g_int_sink = checksum;
 }
 
 void benchmark_print_sprite_results(size_t repeat_count)

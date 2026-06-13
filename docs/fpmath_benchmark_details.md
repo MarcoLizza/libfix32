@@ -81,7 +81,12 @@ The shared benchmark module defines:
 
 Each benchmark accumulates a checksum and stores it into one of these sinks at the end.
 
-The DDA, sprite, and rotoscaler tests also fold their computed coordinates into a running checksum rather than discarding them.
+The small integer and floating-point baseline helpers are `static inline` in
+the shared header so both sides are visible to the optimizer.
+
+The DDA, sprite, and rotoscaler tests fold their computed integer coordinates
+into the same `int64_t` checksum operation rather than measuring different
+post-conversion accumulation types.
 
 ## Input generation
 

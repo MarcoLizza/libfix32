@@ -58,14 +58,58 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
 void benchmark_data_destroy(benchmark_data_t *data);
 int benchmark_parse_size_arg(const char *text, size_t *value);
 
-int32_t benchmark_int_abs(int32_t value);
-int32_t benchmark_int_max(int32_t left, int32_t right);
-int32_t benchmark_float_floor_to_int(float value);
-int32_t benchmark_float_ceil_to_int(float value);
-int32_t benchmark_float_round_to_int(float value);
-float benchmark_float_floor_to_float(float value);
-float benchmark_float_ceil_to_float(float value);
-float benchmark_float_round_to_float(float value);
+static inline int32_t benchmark_int_abs(int32_t value)
+{
+    return (value < 0) ? -value : value;
+}
+
+static inline int32_t benchmark_int_max(int32_t left, int32_t right)
+{
+    return (left > right) ? left : right;
+}
+
+static inline int32_t benchmark_float_floor_to_int(float value)
+{
+    const int32_t whole = (int32_t)value;
+
+    return ((float)whole > value) ? whole - 1 : whole;
+}
+
+static inline int32_t benchmark_float_ceil_to_int(float value)
+{
+    const int32_t whole = (int32_t)value;
+
+    return ((float)whole < value) ? whole + 1 : whole;
+}
+
+static inline int32_t benchmark_float_round_to_int(float value)
+{
+    const int32_t whole = (int32_t)value;
+    const float fractional = value - (float)whole;
+
+    if (fractional >= 0.5f) {
+        return whole + 1;
+    }
+    if (fractional <= -0.5f) {
+        return whole - 1;
+    }
+    return whole;
+}
+
+static inline float benchmark_float_floor_to_float(float value)
+{
+    return (float)benchmark_float_floor_to_int(value);
+}
+
+static inline float benchmark_float_ceil_to_float(float value)
+{
+    return (float)benchmark_float_ceil_to_int(value);
+}
+
+static inline float benchmark_float_round_to_float(float value)
+{
+    return (float)benchmark_float_round_to_int(value);
+}
 
 void benchmark_print_scalar_results(const benchmark_data_t *data);
 void benchmark_print_line_results(size_t repeat_count);

@@ -114,7 +114,7 @@ static void bench_float_dda_line(size_t line_length, size_t repeat_count)
     int32_t start_y;
     int32_t end_x;
     int32_t end_y;
-    double checksum = 0.0;
+    int64_t checksum = 0;
     size_t repeat;
 
     line_endpoints(line_length, &start_x, &start_y, &end_x, &end_y);
@@ -136,14 +136,15 @@ static void bench_float_dda_line(size_t line_length, size_t repeat_count)
                 const int32_t pixel_x = benchmark_float_round_to_int(x);
                 const int32_t pixel_y = benchmark_float_round_to_int(y);
 
-                checksum += (double)((pixel_y * DDA_CANVAS_STRIDE) + pixel_x);
+                checksum +=
+                    (int64_t)pixel_y * DDA_CANVAS_STRIDE + pixel_x;
                 x += step_x;
                 y += step_y;
             }
         }
     }
 
-    g_float_sink = checksum;
+    g_int_sink = checksum;
 }
 
 void benchmark_print_line_results(size_t repeat_count)

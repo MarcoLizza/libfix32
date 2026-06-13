@@ -135,7 +135,7 @@ static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
         src_center_x - (half_dest_x * step_u_x) - (half_dest_y * step_u_y);
     const float origin_v =
         src_center_y - (half_dest_x * step_v_x) - (half_dest_y * step_v_y);
-    double checksum = 0.0;
+    int64_t checksum = 0;
     size_t repeat;
 
     for (repeat = 0; repeat < repeat_count; ++repeat) {
@@ -155,7 +155,7 @@ static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
                     benchmark_float_floor_to_int(v);
 
                 checksum +=
-                    (double)((sample_y * rotoscale_case->src_width) + sample_x);
+                    (int64_t)sample_y * rotoscale_case->src_width + sample_x;
                 u += step_u_x;
                 v += step_v_x;
             }
@@ -165,7 +165,7 @@ static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
         }
     }
 
-    g_float_sink = checksum;
+    g_int_sink = checksum;
 }
 
 void benchmark_print_rotoscale_results(size_t repeat_count)
