@@ -15,7 +15,18 @@ This document summarizes the design choices and rationale behind the header-only
 - The default format is 16 fractional bits:
   - `FIX32_FRACTIONAL_BITS` defaults to `16`
   - `FIX32_ONE` is `1 << FIX32_FRACTIONAL_BITS`
-- The fractional-bit count is configurable through `FIX32_FRACTIONAL_BITS`. The implementation still assumes a signed 32-bit raw storage type.
+- The fractional-bit count is configurable from `1` through `30` with
+  `FIX32_FRACTIONAL_BITS`; values outside that range are rejected at
+  preprocessing time.
+- `FIX32_INT_MIN` and `FIX32_INT_MAX` describe the whole-number range that can
+  be scaled into the raw storage.
+- `FIX32_HALF`, `FIX32_FRACTIONAL_MASK`, and `FIX32_INTEGER_MASK` expose the
+  scale-derived constants used by the conversion and rounding helpers.
+- `fix32_from_raw()` and `fix32_to_raw()` are identity conversions for code that
+  needs direct access to the stored representation.
+- `FPMATH_VERSION_MAJOR`, `FPMATH_VERSION_MINOR`,
+  `FPMATH_VERSION_REVISION`, and `FPMATH_VERSION_STRING` identify the current
+  header version, `0.1.0`.
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.
 
@@ -36,26 +47,49 @@ Rationale:
 - Integer-to-fixed conversion is exact as long as the scaled value fits.
 - The implementation uses a 64-bit intermediate for the scaling step to avoid overflowing during the multiply.
 
-### `float -> fixed`
+### `float` and `double -> fixed`
 
-`fix32_from_float()` uses:
+The direct constructors:
+
+- `fix32_from_float()`
+- `fix32_from_double()`
+
+multiply by `FIX32_ONE` and convert to `fix32_t`. For values whose scaled
+result is representable, the conversion truncates toward zero.
+
+The explicit rounding constructors:
+
+- `fix32_round_from_float()`
+- `fix32_round_from_double()`
+
+add or subtract half a raw unit before the cast:
 
 ```c
-scaled + ((scaled >= 0.0f) ? 0.5f : -0.5f)
+scaled + ((scaled >= 0) ? 0.5 : -0.5)
 ```
-
-before the cast.
 
 Rationale:
 
 - No external math helpers are required.
 - The behavior is explicit and easy to inspect.
-- The chosen policy is symmetric half-away-from-zero rounding.
+- Callers can choose truncation or symmetric half-away-from-zero rounding
+  directly.
+
+### Conversion helper macros
+
+By default, `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`, and `FIX32_TO_INT` select
+the rounding functions. Defining `FIX32_NO_ROUNDING` switches those macros to
+the truncating functions.
+
+`FIX32_FROM_INT`, `FIX32_TO_FLOAT`, and `FIX32_TO_DOUBLE` are direct aliases.
+`FIX32_ITRUNC`, `FIX32_IFLOOR`, and `FIX32_IROUND` expose the three named
+integer conversion policies independently of `FIX32_NO_ROUNDING`.
 
 ### `fixed -> int`
 
 The module exposes:
 
+- `fix32_trunc_to_int()`
 - `fix32_floor_to_int()`
 - `fix32_ceil_to_int()`
 - `fix32_round_to_int()`
@@ -63,9 +97,13 @@ The module exposes:
 Rationale:
 
 - These are common terminal conversions for pixel, coordinate, and sampling code.
-- `round_to_int()` uses the same half-away-from-zero behavior as `from_float()`.
+- `fix32_trunc_to_int()` truncates toward zero.
+- `fix32_floor_to_int()` and `fix32_ceil_to_int()` round toward negative and
+  positive infinity respectively.
+- `fix32_round_to_int()` uses the same half-away-from-zero policy as the
+  explicit rounding constructors.
 
-### `fixed -> float`
+### `fixed -> float` and `double`
 
 The module exposes:
 
@@ -73,11 +111,34 @@ The module exposes:
 - `fix32_floor_to_float()`
 - `fix32_ceil_to_float()`
 - `fix32_round_to_float()`
+- `fix32_to_double()`
+- `fix32_floor_to_double()`
+- `fix32_ceil_to_double()`
+- `fix32_round_to_double()`
 
 Rationale:
 
-- These let the benchmark compare exact value conversion against quantized float outputs.
-- The `*_to_float()` rounded forms are implemented by first producing the integer result, then casting to float, so the rounding policy stays consistent.
+- The direct conversions divide the raw value by `FIX32_ONE`.
+- `double` can represent every 32-bit raw fixed-point value exactly; `float`
+  may lose low-order precision.
+- The floor, ceil, and round forms first produce the corresponding integer
+  result and then cast it to `float` or `double`.
+
+### Fixed-valued rounding
+
+`fix32_floor()`, `fix32_ceil()`, and `fix32_round()` apply the corresponding
+rounding policy while keeping the result in `fix32_t` representation.
+
+## Unchecked input contract
+
+The header performs no runtime validation and does not provide debug-only
+assertions. Callers are responsible for keeping conversion and arithmetic
+results within the representable range and for passing nonzero divisors.
+
+The wider intermediates used by selected operations prevent specific
+intermediate overflows, but they do not provide saturation or final-result
+range checks. Floating-to-integer conversions also require the scaled input to
+be representable by `fix32_t`.
 
 ## No external math-library functions
 
@@ -93,45 +154,9 @@ Rationale:
 - Make the exact semantics visible in plain C.
 - Avoid benchmarking the math library instead of the chosen numeric representation.
 
-## Debug-time validation
+## Floor and ceil fast paths
 
-The header now supports:
-
-```c
-#define FIX32_ENABLE_DEBUG_CHECKS ...
-```
-
-Default behavior:
-
-- enabled when `NDEBUG` is not defined
-- disabled when `NDEBUG` is defined
-
-Rationale:
-
-- Catch out-of-range inputs during development without forcing release builds to pay for the checks.
-- Make configuration mistakes visible early, especially when experimenting with different fractional widths or 32-bit-only multiply mode.
-
-What is checked in debug builds:
-
-- `fix32_from_int()` asserts that the integer input fits after scaling.
-- `fix32_from_float()` asserts that the rounded scaled value can still fit in the 32-bit raw storage.
-- `fix32_add()` asserts that the raw sum fits in the 32-bit storage.
-- `fix32_mul()` asserts either that the scaled 64-bit result fits, or, in 32-bit multiply mode, that the raw product fits before the shift.
-- `fix32_div_by_int()` and `fix32_div()` assert that the divisor is nonzero.
-- `fix32_div()` asserts that the scaled quotient fits the raw storage.
-
-Benchmark note:
-
-- The benchmark explicitly uses `fix32_round_from_float()` when it needs nearest-value conversion.
-
-Interaction with the multiply-range hint:
-
-- If `FIX32_INTEGER_BITS` is defined, debug builds also assert that operands passed to `fix32_mul()` stay within the promised range.
-- This hint remains a programmer promise about expected multiply inputs; it is not the actual format definition.
-
-## Floor fast path vs portable fallback
-
-`fix32_floor_to_int()` supports two modes.
+`fix32_floor_to_int()` and `fix32_ceil_to_int()` support two modes.
 
 ### Fast path
 
@@ -141,16 +166,20 @@ Default:
 #define FIX32_USE_ARITHMETIC_SHIFT_FLOOR 1
 ```
 
-Implementation:
+The floor implementation is:
 
 ```c
 value >> FIX32_FRACTIONAL_BITS
 ```
 
+The ceil implementation derives the same whole part with an arithmetic shift
+and adds one when `FIX32_FRACTIONAL_MASK` shows a fractional part.
+
 Rationale:
 
 - On typical two's-complement targets, signed right shift is arithmetic and gives the desired floor behavior directly.
-- This is faster and simpler for the common case.
+- The same shifted whole part is a convenient basis for ceiling.
+- This is the default fast path.
 
 ### Portable fallback
 
@@ -160,7 +189,8 @@ Enabled with:
 #define FIX32_USE_ARITHMETIC_SHIFT_FLOOR 0
 ```
 
-Implementation uses division and remainder to correct negative non-integer values.
+Both functions use division and remainder, then correct the truncated whole
+part according to the sign and whether a fraction is present.
 
 Rationale:
 
@@ -169,10 +199,11 @@ Rationale:
 
 ## Bitmask usage
 
-The header now exposes:
+The header exposes:
 
 ```c
 #define FIX32_FRACTIONAL_MASK (FIX32_ONE - 1)
+#define FIX32_INTEGER_MASK    (~FIX32_FRACTIONAL_MASK)
 ```
 
 Rationale:
@@ -183,12 +214,25 @@ Rationale:
 Current use:
 
 - The arithmetic-shift `ceil_to_int()` fast path uses `FIX32_FRACTIONAL_MASK` to detect whether any fractional bits are present.
+- `fix32_floor()` clears the fractional field with `FIX32_INTEGER_MASK`.
+- `fix32_ceil()` clears the fractional field and adds `FIX32_ONE` when a
+  fraction is present.
 
 Why it is not used everywhere:
 
 - Masks are excellent for fractional-bit extraction and “has fraction” tests.
 - They are less universally helpful for higher-level arithmetic rules, especially when negative-value semantics need to stay explicit.
 - Modern compilers already optimize many power-of-two operations well, so masks were used only where they also improve clarity.
+
+## Basic arithmetic
+
+`fix32_add()` and `fix32_sub()` operate directly on the raw fixed-point values.
+`fix32_mul_by_int()` scales a fixed-point value by an integer without changing
+the radix position.
+
+These operations do not perform overflow checks. When `FIX32_USE_64_BIT` is
+nonzero, `fix32_mul_by_int()` uses a 64-bit product before converting the result
+back to `fix32_t`; otherwise it uses a 32-bit multiplication.
 
 ## Multiplication design
 
@@ -205,7 +249,7 @@ then each raw operand uses about `I + F` magnitude bits. Multiplying two raw ope
 2 * (I + F)
 ```
 
-magnitude bits before the final right shift by `F`.
+magnitude bits before the final scaling by `2^F`.
 
 This is why multiplication is the main place where an intermediate wider than 32 bits may be needed.
 
@@ -219,10 +263,10 @@ This is why multiplication is the main place where an intermediate wider than 32
 
 Rationale:
 
-- Safe default for general use.
-- Prevents overflow in the raw product before the post-multiply shift.
+- Every product of two `int32_t` operands fits in the 64-bit intermediate.
 - Truncates negative results toward zero without relying on signed-shift
   behavior.
+- The caller must still ensure that the scaled result fits in `fix32_t`.
 
 ### Optional signed-shift multiply scaling
 
@@ -251,15 +295,15 @@ Can be forced with:
 #define FIX32_USE_64_BIT 0
 ```
 
-Rationale:
+With `FIX32_USE_64_BIT=0`, `fix32_mul()` narrows its computed product to
+`int32_t` before scaling, `fix32_mul_by_int()` uses a 32-bit multiplication,
+and `fix32_round_to_int()` uses a 32-bit temporary.
 
-- Some constrained use cases can guarantee smaller operand ranges.
-- In those cases the programmer may prefer to avoid 64-bit arithmetic entirely.
-
-Tradeoff:
-
-- The library does not prove safety for this mode.
-- The caller is responsible for ensuring that the raw 32-bit product fits before the shift.
+The caller must ensure those narrowed intermediates fit. The library does not
+prove or check that constraint. In particular, the current `fix32_mul()`
+expression still performs a 64-bit multiplication before storing the result in
+the 32-bit temporary; this mode changes the stored intermediate and related
+helper paths rather than eliminating every 64-bit operation from the header.
 
 ### Optional multiply-range hint
 
@@ -295,26 +339,32 @@ Rationale:
 
 Important detail:
 
-- If no multiply-range hint is provided, the library falls back to safe 64-bit multiply by default.
+- If no multiply-range hint is provided, the library retains the full 64-bit
+  product through the scaling step by default.
 - The earlier idea of defaulting the hint to `31 - FIX32_FRACTIONAL_BITS` was rejected because it made the auto-selection meaningless: it would always force 64-bit multiply.
-
-Debug-time consequence:
-
-- If the programmer supplies `FIX32_INTEGER_BITS`, debug builds treat that as a promise and assert it at runtime when `fix32_mul()` is used.
+- The hint is used only for compile-time path selection. It does not change the
+  fixed-point format and is not enforced at runtime.
 
 ## Where 64-bit intermediates are used
 
-64-bit arithmetic is used selectively, not everywhere.
+64-bit arithmetic is used selectively.
 
-Current rationale:
+It is always used by:
 
-- `fix32_from_int()` uses a 64-bit intermediate for scaling.
-- `fix32_round_to_int()` uses a 64-bit temporary while adding/subtracting half a unit.
-- `fix32_mul()` uses 64-bit by default, but can be switched to 32-bit when the caller guarantees a safe range.
+- `fix32_from_int()` while scaling the integer input
+- the multiplication expression in `fix32_mul()`
+- the default `fix32_div()` numerator scaling and quotient
+
+When `FIX32_USE_64_BIT` is nonzero, it is also used for:
+
+- retaining the full product in `fix32_mul()` until after scaling
+- `fix32_mul_by_int()`
+- the temporary in `fix32_round_to_int()`
 
 Operations that remain narrow and simple:
 
 - `fix32_add()`
+- `fix32_sub()`
 - `fix32_div_by_int()`
 - `fix32_floor_to_int()` fast path
 - `fix32_ceil_to_int()`
@@ -324,8 +374,14 @@ Operations that remain narrow and simple:
 
 The header now provides:
 
+- `fix32_div_by_int()`
 - `fix32_div()`
+- `fix32_reciprocal_by_int()`
 - `fix32_reciprocal()`
+
+The integer-divisor helpers operate directly on the raw fixed-point value:
+`fix32_div_by_int()` divides a fixed value by an integer, while
+`fix32_reciprocal_by_int()` computes `FIX32_ONE / value`.
 
 ### Direct division
 
@@ -363,12 +419,16 @@ That path computes:
 ((int64_t)numerator << FIX32_FRACTIONAL_BITS) / denominator
 ```
 
-Left-shifting a negative signed value is undefined behavior in C99. Enable this option only when relying on a specific compiler behavior is acceptable. The default value is `0`.
+Left-shifting a negative signed value is undefined behavior in C99. This option
+is valid only when every numerator passed to `fix32_div()` is nonnegative. The
+default value is `0`.
 
 Rounding detail:
 
 - `fix32_div()` inherits the truncation behavior of integer division in C99.
-- This means direct fixed division and a float reciprocal converted back through `fix32_from_float()` can differ by one raw least-significant unit on values that are not exactly representable.
+- This means direct fixed division and a float reciprocal converted back through
+  `fix32_round_from_float()` can differ because they use different rounding
+  paths and the float path has limited precision.
 
 ### Precomputed reciprocal
 
@@ -386,7 +446,7 @@ Rationale:
 
 Why the library keeps both:
 
-- Direct division is the safer and more obvious primitive.
+- Direct division is the clearer primitive for a one-off quotient.
 - Reciprocal multiply is a secondary optimization path for repeated divisions by the same value.
 - Computing the reciprocal on the fly was explicitly avoided because it would only hide the division cost rather than reduce it.
 
@@ -396,7 +456,9 @@ Benchmark note:
 - The fixed path uses `fix32_reciprocal(x)`.
 - The floating-point baseline computes `1.0f / x` in float and then converts that reciprocal back to fixed with `fix32_round_from_float()`.
 - This keeps both paths comparable because they produce the same final fixed-point representation.
-- For non-exact reciprocals, the two paths may differ by one raw LSB because the fixed path truncates through integer division while `fix32_round_from_float()` rounds to nearest.
+- For the benchmark's bounded inputs, non-exact reciprocals may differ by one
+  raw LSB because the fixed path truncates through integer division while
+  `fix32_round_from_float()` rounds to nearest.
 
 ## Why the benchmark is split into scalar and workload sections
 
@@ -684,7 +746,8 @@ The library favors:
 - explicit rounding logic in plain C
 - fast paths where the performance win is meaningful
 - compile-time switches where portability and speed trade off directly
-- safe defaults unless the programmer explicitly promises tighter operand bounds
+- wide default intermediates for fixed multiplication and division
+- caller-owned range, overflow, and divisor validity
 
 The benchmark favors:
 
@@ -692,4 +755,7 @@ The benchmark favors:
 - comparing both microbenchmarks and graphics-style workloads
 - increasing workload complexity to reveal steady-state behavior
 
-Overall, the design treats fixed point as a practical engineering tradeoff: use the fast path when the platform and operand range are known, but keep safe and portable fallbacks available.
+Overall, the design treats fixed point as a practical engineering tradeoff:
+use the fast path when the platform and operand range are known, select the
+portable floor/ceil fallback when required, and keep all inputs inside the
+unchecked arithmetic domain.
