@@ -27,6 +27,14 @@
 
 #define FPMATH_H_INCLUDED
 
+#define FPMATH_STRINGIFY(x)     #x
+#define FPMATH_XSTRINGIFY(x)    FPMATH_STRINGIFY(x)
+
+#define FPMATH_VERSION_MAJOR    0
+#define FPMATH_VERSION_MINOR    1
+#define FPMATH_VERSION_REVISION 0
+#define FPMATH_VERSION_STRING   FPMATH_XSTRINGIFY(FPMATH_VERSION_MAJOR) "." FPMATH_XSTRINGIFY(FPMATH_VERSION_MINOR) "." FPMATH_XSTRINGIFY(FPMATH_VERSION_REVISION)
+
 #include <stdint.h>
 
 // The library refers to the actual type as `fix32_t` as internally it is
