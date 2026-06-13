@@ -50,6 +50,85 @@
 // floats have 52 bits of precision, which is more than enough to represent all
 // the values of a 16.16 fixed-point number.
 
+// Public API overview:
+//
+// Include-time macros and versioning:
+// - `FPMATH_H` / `FPMATH_H_INCLUDED`: internal include guards.
+// - `FPMATH_STRINGIFY(x)` / `FPMATH_XSTRINGIFY(x)`: stringification helpers
+//   used to build `FPMATH_VERSION_STRING`.
+// - `FPMATH_VERSION_MAJOR`, `FPMATH_VERSION_MINOR`, `FPMATH_VERSION_REVISION`,
+//   `FPMATH_VERSION_STRING`: library version identifiers.
+//
+// Configuration macros defined before including this header:
+// - `FIX32_FRACTIONAL_BITS`: number of fractional bits in the fixed-point
+//   representation, from `1` to `30` (default to `16`).
+// - `FIX32_USE_ARITHMETIC_SHIFT_FLOOR`: selects the arithmetic-shift floor
+//   fast path (`1`, default) or the portable division/remainder fallback (`0`).
+// - `FIX32_USE_SIGNED_SHIFT_MUL`: selects signed right-shift scaling for
+//   `fix32_mul()` (`1`) or the truncating divide-based scaling (`0`, default).
+// - `FIX32_USE_SIGNED_SHIFT_DIV`: selects signed left-shift scaling for
+//   `fix32_div()` (`1`) or the multiply-by-scale path (`0`, default).
+// - `FIX32_USE_64_BIT`: selects the wider internal multiply path for helpers
+//   such as `fix32_mul_by_int()` and `fix32_round_to_int()`. If omitted, the
+//   header derives it from `FIX32_INTEGER_BITS` when present, otherwise it
+//   defaults to `1`.
+// - `FIX32_INTEGER_BITS`: optional compile-time hint for `FIX32_USE_64_BIT`
+//   auto-selection. With the default `FIX32_FRACTIONAL_BITS` of `16`, the
+//   integer part has 15 bits of precision. If the integer part has more than
+//   15 bits, `FIX32_USE_64_BIT` will be automatically selected.
+// - `FIX32_NO_ROUNDING`: switches the `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`,
+//   and `FIX32_TO_INT` helper macros to their truncating variants.
+//
+// Constants and type:
+// - `FIX32_ONE`: raw fixed-point scale factor.
+// - `FIX32_HALF`: half of `FIX32_ONE`.
+// - `FIX32_FRACTIONAL_MASK`: mask for the fractional bits.
+// - `FIX32_INTEGER_MASK`: mask for the integer bits.
+// - `FIX32_INT_MAX` / `FIX32_INT_MIN`: whole-number range that fits in the raw
+//   storage when scaled by `FIX32_ONE`.
+// - `fix32_t`: signed 32-bit storage type used by the library.
+//
+// Functions:
+// - `fix32_from_raw()` / `fix32_to_raw()`: identity conversions between raw
+//   storage and `fix32_t`.
+// - `fix32_from_int()`: converts an integer to fixed-point by scaling it.
+// - `fix32_from_float()` / `fix32_from_double()`: truncating float/double to
+//   fixed-point conversion.
+// - `fix32_round_from_float()` / `fix32_round_from_double()`: half-away-from-
+//   zero float/double to fixed-point conversion.
+// - `fix32_add()` / `fix32_sub()`: fixed-point addition and subtraction.
+// - `fix32_mul_by_int()`: fixed-point multiplied by an integer.
+// - `fix32_mul()`: fixed-point multiplication with selectable scaling path.
+// - `fix32_div_by_int()`: fixed-point divided by an integer.
+// - `fix32_div()`: fixed-point division with selectable scaling path.
+// - `fix32_reciprocal_by_int()`: reciprocal of an integer in fixed-point.
+// - `fix32_reciprocal()`: reciprocal of a fixed-point value.
+// - `fix32_floor_to_int()` / `fix32_ceil_to_int()` / `fix32_trunc_to_int()` /
+//   `fix32_round_to_int()`: convert fixed-point to integer using the named
+//   rounding policy.
+// - `fix32_to_float()` / `fix32_to_double()`: exact value conversion back to
+//   floating point.
+// - `fix32_floor_to_float()` / `fix32_ceil_to_float()` /
+//   `fix32_round_to_float()`: fixed-point to float using integer-style rounding
+//   first.
+// - `fix32_floor_to_double()` / `fix32_ceil_to_double()` /
+//   `fix32_round_to_double()`: fixed-point to double using integer-style
+//   rounding first.
+// - `fix32_floor()` / `fix32_ceil()` / `fix32_round()`: rounding while keeping
+//   the result in fixed-point representation.
+//
+// Helper macros:
+// - `FIX32_FROM_INT()`: calls `fix32_from_int()`.
+// - `FIX32_FROM_FLOAT()`: calls `fix32_round_from_float()` by default, or
+//   `fix32_from_float()` when `FIX32_NO_ROUNDING` is defined.
+// - `FIX32_FROM_DOUBLE()`: calls `fix32_round_from_double()` by default, or
+//   `fix32_from_double()` when `FIX32_NO_ROUNDING` is defined.
+// - `FIX32_TO_INT()`: calls `fix32_round_to_int()` by default, or
+//   `fix32_trunc_to_int()` when `FIX32_NO_ROUNDING` is defined.
+// - `FIX32_TO_FLOAT()`, `FIX32_TO_DOUBLE()`: exact value conversion helpers.
+// - `FIX32_ITRUNC()`, `FIX32_IFLOOR()`, `FIX32_IROUND()`: explicit integer
+//   rounding helpers.
+
 #if !defined(FIX32_FRACTIONAL_BITS)
     #define FIX32_FRACTIONAL_BITS 16
 #endif  /* !defined(FIX32_FRACTIONAL_BITS) */
