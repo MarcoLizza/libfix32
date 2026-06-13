@@ -13,9 +13,9 @@ This document summarizes the design choices and rationale behind the header-only
 
 - The storage type is `int32_t` (`fix32_t`).
 - The default format is 16 fractional bits:
-  - `FIX32_FRACTION_BITS` defaults to `16`
-  - `FIX32_SCALE` is `1 << FIX32_FRACTION_BITS`
-- The fractional-bit count is configurable through `FIX32_FRACTION_BITS`. The implementation still assumes a signed 32-bit raw storage type.
+  - `FIX32_FRACTIONAL_BITS` defaults to `16`
+  - `FIX32_ONE` is `1 << FIX32_FRACTIONAL_BITS`
+- The fractional-bit count is configurable through `FIX32_FRACTIONAL_BITS`. The implementation still assumes a signed 32-bit raw storage type.
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.
 
@@ -29,7 +29,7 @@ The original target was a classic 16:16 layout because it is simple, familiar, a
 
 ### `int -> fixed`
 
-`fix32_from_int()` scales an integer by `FIX32_SCALE`.
+`fix32_from_int()` scales an integer by `FIX32_ONE`.
 
 Rationale:
 
@@ -126,7 +126,7 @@ Benchmark note:
 
 Interaction with the multiply-range hint:
 
-- If `FIX32_MUL_INTEGER_BITS` is defined, debug builds also assert that operands passed to `fix32_mul()` stay within the promised range.
+- If `FIX32_INTEGER_BITS` is defined, debug builds also assert that operands passed to `fix32_mul()` stay within the promised range.
 - This hint remains a programmer promise about expected multiply inputs; it is not the actual format definition.
 
 ## Floor fast path vs portable fallback
@@ -144,7 +144,7 @@ Default:
 Implementation:
 
 ```c
-value >> FIX32_FRACTION_BITS
+value >> FIX32_FRACTIONAL_BITS
 ```
 
 Rationale:
@@ -172,7 +172,7 @@ Rationale:
 The header now exposes:
 
 ```c
-#define FIX32_FRAC_MASK (FIX32_SCALE - 1)
+#define FIX32_FRACTIONAL_MASK (FIX32_ONE - 1)
 ```
 
 Rationale:
@@ -182,7 +182,7 @@ Rationale:
 
 Current use:
 
-- The arithmetic-shift `ceil_to_int()` fast path uses `FIX32_FRAC_MASK` to detect whether any fractional bits are present.
+- The arithmetic-shift `ceil_to_int()` fast path uses `FIX32_FRACTIONAL_MASK` to detect whether any fractional bits are present.
 
 Why it is not used everywhere:
 
@@ -214,7 +214,7 @@ This is why multiplication is the main place where an intermediate wider than 32
 `fix32_mul()` defaults to a 64-bit intermediate:
 
 ```c
-((int64_t)left * (int64_t)right) >> FIX32_FRACTION_BITS
+((int64_t)left * (int64_t)right) >> FIX32_FRACTIONAL_BITS
 ```
 
 Rationale:
@@ -227,7 +227,7 @@ Rationale:
 Can be forced with:
 
 ```c
-#define FIX32_USE_64BIT_MUL 0
+#define FIX32_USE_64_BIT 0
 ```
 
 Rationale:
@@ -245,15 +245,15 @@ Tradeoff:
 The library supports:
 
 ```c
-#define FIX32_MUL_INTEGER_BITS ...
+#define FIX32_INTEGER_BITS ...
 ```
 
 This macro is only a hint for multiply-path selection. It does **not** change the stored format.
 
-If `FIX32_USE_64BIT_MUL` is not defined explicitly, and `FIX32_MUL_INTEGER_BITS` is defined, the header derives the multiply path from:
+If `FIX32_USE_64_BIT` is not defined explicitly, and `FIX32_INTEGER_BITS` is defined, the header derives the multiply path from:
 
 ```c
-((FIX32_MUL_INTEGER_BITS + FIX32_FRACTION_BITS) > 15)
+((FIX32_INTEGER_BITS + FIX32_FRACTIONAL_BITS) > 15)
 ```
 
 Rationale:
@@ -261,13 +261,13 @@ Rationale:
 - The exact condition for a 32-bit raw product to overflow is:
 
 ```c
-2 * (FIX32_MUL_INTEGER_BITS + FIX32_FRACTION_BITS) > 31
+2 * (FIX32_INTEGER_BITS + FIX32_FRACTIONAL_BITS) > 31
 ```
 
 - Because the left side is always even, that is exactly equivalent to:
 
 ```c
-(FIX32_MUL_INTEGER_BITS + FIX32_FRACTION_BITS) > 15
+(FIX32_INTEGER_BITS + FIX32_FRACTIONAL_BITS) > 15
 ```
 
 - The shorter test says the same thing with less clutter.
@@ -275,11 +275,11 @@ Rationale:
 Important detail:
 
 - If no multiply-range hint is provided, the library falls back to safe 64-bit multiply by default.
-- The earlier idea of defaulting the hint to `31 - FIX32_FRACTION_BITS` was rejected because it made the auto-selection meaningless: it would always force 64-bit multiply.
+- The earlier idea of defaulting the hint to `31 - FIX32_FRACTIONAL_BITS` was rejected because it made the auto-selection meaningless: it would always force 64-bit multiply.
 
 Debug-time consequence:
 
-- If the programmer supplies `FIX32_MUL_INTEGER_BITS`, debug builds treat that as a promise and assert it at runtime when `fix32_mul()` is used.
+- If the programmer supplies `FIX32_INTEGER_BITS`, debug builds treat that as a promise and assert it at runtime when `fix32_mul()` is used.
 
 ## Where 64-bit intermediates are used
 
@@ -311,7 +311,7 @@ The header now provides:
 By default, `fix32_div()` uses:
 
 ```c
-((int64_t)numerator * (int64_t)FIX32_SCALE) / denominator
+((int64_t)numerator * (int64_t)FIX32_ONE) / denominator
 ```
 
 Rationale:
@@ -330,7 +330,7 @@ The original signed-shift scaling path can be enabled before including the heade
 That path computes:
 
 ```c
-((int64_t)numerator << FIX32_FRACTION_BITS) / denominator
+((int64_t)numerator << FIX32_FRACTIONAL_BITS) / denominator
 ```
 
 Left-shifting a negative signed value is undefined behavior in C99. Enable this option only when relying on a specific compiler behavior is acceptable. The default value is `0`.
