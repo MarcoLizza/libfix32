@@ -52,7 +52,8 @@ There are four timing helpers:
 - `run_benchmark()` for scalar rows
 - `run_line_benchmark()` for the DDA line cases
 - `run_sprite_benchmark()` for the sprite scaler cases
-- `run_rotoscale_benchmark()` for the rotoscaler cases
+- `run_rotoscale_benchmark()` for the rotoscaler cases; the benchmark prints
+  both incremental and direct inverse-mapping tables from the same helper
 
 The output is normalized like this:
 
@@ -377,7 +378,7 @@ seconds * 1e9 / (dest_width * dest_height * repeat_count)
 
 ## Rotoscaler benchmark section
 
-The rotoscaler section prints:
+The rotoscaler section prints a table for each loop shape:
 
 ```text
 case | dest pixels | fixed ns/pixel | float ns/pixel | fixed/float
@@ -394,9 +395,9 @@ This is a virtual rotated-sprite coordinate-generation benchmark. It is intended
 
 Like the sprite scaler test, it does not fetch or write pixels.
 
-### Fixed-point rotoscaler path
+### Fixed-point rotoscaler paths
 
-For each case, the fixed-point routine computes:
+For each case, the fixed-point routines first compute the shared affine setup:
 
 - X-axis source step after scale and rotation
 - Y-axis source step after scale and rotation
@@ -422,14 +423,26 @@ Then each output row:
 4. folds the sampled coordinate into the checksum
 5. advances the next row origin by `(step_u_y, step_v_y)`
 
-### Float rotoscaler path
+The direct inverse-mapping path keeps the same setup, but each pixel computes
+the affine expression directly from destination `x` and `y`:
 
-The float routine mirrors the same structure:
+```c
+u = origin_u + step_u_x * dest_x + step_u_y * dest_y;
+v = origin_v + step_v_x * dest_x + step_v_y * dest_y;
+```
+
+That path removes the row and column recurrences, which makes it a useful
+upper bound for the cost of affine source-coordinate generation.
+
+### Float rotoscaler paths
+
+The float routines mirror the same structures:
 
 - float `scale_x`, `scale_y`
 - float `step_u_x`, `step_v_x`, `step_u_y`, `step_v_y`
 - float row origins and repeated per-pixel additions
 - sampling via `float_floor_to_int()`
+- direct affine recomputation from destination coordinates in the direct table
 
 ### Why this benchmark is useful
 
@@ -438,6 +451,12 @@ The sprite scaler benchmark covers axis-aligned scaling. The rotoscaler adds:
 - rotated step vectors
 - more setup multiplies
 - non-axis-aligned source traversal
+
+The benchmark reports both incremental and direct inverse mapping because they
+model different implementation choices inside a software rotoscaler. The
+incremental form matches a typical rasterizer inner loop. The direct form is
+simpler and can be easier to validate, but it pays more per-pixel multiplication
+work.
 
 This makes it a closer match for:
 
@@ -519,6 +538,6 @@ The benchmark suite is structured to answer four separate performance questions:
 1. What is the isolated cost of the fixed-point primitives?
 2. How do fixed and float behave in an incremental line-stepping workload?
 3. How do fixed and float behave in repeated scaling/sampling coordinate generation?
-4. How do fixed and float behave in rotated scaling / affine source-coordinate generation?
+4. How do fixed and float behave in rotated scaling / affine source-coordinate generation, both incrementally and directly?
 
 The scalar rows are useful for primitive design decisions. The DDA, sprite, and rotoscaler sections are useful for deciding whether those primitive costs matter in graphics-style code that mostly advances coordinates and converts them back to integer sample positions.

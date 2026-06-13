@@ -115,5 +115,6 @@ void benchmark_print_scalar_results(const benchmark_data_t *data);
 void benchmark_print_line_results(size_t repeat_count);
 void benchmark_print_sprite_results(size_t repeat_count);
 void benchmark_print_rotoscale_results(size_t repeat_count);
+void benchmark_print_rotoscale_direct_results(size_t repeat_count);
 
 #endif

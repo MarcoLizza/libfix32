@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     benchmark_print_line_results(repeat_count);
     benchmark_print_sprite_results(repeat_count);
     benchmark_print_rotoscale_results(repeat_count);
+    benchmark_print_rotoscale_direct_results(repeat_count);
     benchmark_data_destroy(&data);
     return EXIT_SUCCESS;
 }

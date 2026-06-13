@@ -116,6 +116,65 @@ static void bench_fixed_rotoscaler(const rotoscale_case_t *rotoscale_case,
     g_int_sink = checksum;
 }
 
+static void bench_fixed_rotoscaler_direct(const rotoscale_case_t *rotoscale_case,
+                                          size_t repeat_count)
+{
+    const fix32_t cos_angle =
+        fix32_round_from_float(rotoscale_case->cos_angle);
+    const fix32_t sin_angle =
+        fix32_round_from_float(rotoscale_case->sin_angle);
+    const fix32_t scale_x =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->src_width),
+                         rotoscale_case->dest_width);
+    const fix32_t scale_y =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->src_height),
+                         rotoscale_case->dest_height);
+    const fix32_t step_u_x = fix32_mul(cos_angle, scale_x);
+    const fix32_t step_v_x = -fix32_mul(sin_angle, scale_x);
+    const fix32_t step_u_y = fix32_mul(sin_angle, scale_y);
+    const fix32_t step_v_y = fix32_mul(cos_angle, scale_y);
+    const fix32_t half_dest_x =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->dest_width), 2);
+    const fix32_t half_dest_y =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->dest_height), 2);
+    const fix32_t src_center_x =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->src_width), 2);
+    const fix32_t src_center_y =
+        fix32_div_by_int(fix32_from_int(rotoscale_case->src_height), 2);
+    const fix32_t origin_u =
+        src_center_x - fix32_mul(half_dest_x, step_u_x) -
+        fix32_mul(half_dest_y, step_u_y);
+    const fix32_t origin_v =
+        src_center_y - fix32_mul(half_dest_x, step_v_x) -
+        fix32_mul(half_dest_y, step_v_y);
+    int64_t checksum = 0;
+    size_t repeat;
+
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
+        int32_t dest_y;
+
+        for (dest_y = 0; dest_y < rotoscale_case->dest_height; ++dest_y) {
+            int32_t dest_x;
+
+            for (dest_x = 0; dest_x < rotoscale_case->dest_width; ++dest_x) {
+                const fix32_t u =
+                    origin_u + fix32_mul_by_int(step_u_x, dest_x) +
+                    fix32_mul_by_int(step_u_y, dest_y);
+                const fix32_t v =
+                    origin_v + fix32_mul_by_int(step_v_x, dest_x) +
+                    fix32_mul_by_int(step_v_y, dest_y);
+                const int32_t sample_x = fix32_floor_to_int(u);
+                const int32_t sample_y = fix32_floor_to_int(v);
+
+                checksum +=
+                    (int64_t)sample_y * rotoscale_case->src_width + sample_x;
+            }
+        }
+    }
+
+    g_int_sink = checksum;
+}
+
 static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
                                    size_t repeat_count)
 {
@@ -168,7 +227,59 @@ static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
     g_int_sink = checksum;
 }
 
-void benchmark_print_rotoscale_results(size_t repeat_count)
+static void bench_float_rotoscaler_direct(const rotoscale_case_t *rotoscale_case,
+                                          size_t repeat_count)
+{
+    const float scale_x =
+        (float)rotoscale_case->src_width / (float)rotoscale_case->dest_width;
+    const float scale_y =
+        (float)rotoscale_case->src_height / (float)rotoscale_case->dest_height;
+    const float step_u_x = rotoscale_case->cos_angle * scale_x;
+    const float step_v_x = -rotoscale_case->sin_angle * scale_x;
+    const float step_u_y = rotoscale_case->sin_angle * scale_y;
+    const float step_v_y = rotoscale_case->cos_angle * scale_y;
+    const float half_dest_x = (float)rotoscale_case->dest_width * 0.5f;
+    const float half_dest_y = (float)rotoscale_case->dest_height * 0.5f;
+    const float src_center_x = (float)rotoscale_case->src_width * 0.5f;
+    const float src_center_y = (float)rotoscale_case->src_height * 0.5f;
+    const float origin_u =
+        src_center_x - (half_dest_x * step_u_x) - (half_dest_y * step_u_y);
+    const float origin_v =
+        src_center_y - (half_dest_x * step_v_x) - (half_dest_y * step_v_y);
+    int64_t checksum = 0;
+    size_t repeat;
+
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
+        int32_t dest_y;
+
+        for (dest_y = 0; dest_y < rotoscale_case->dest_height; ++dest_y) {
+            int32_t dest_x;
+
+            for (dest_x = 0; dest_x < rotoscale_case->dest_width; ++dest_x) {
+                const float u =
+                    origin_u + (step_u_x * (float)dest_x) +
+                    (step_u_y * (float)dest_y);
+                const float v =
+                    origin_v + (step_v_x * (float)dest_x) +
+                    (step_v_y * (float)dest_y);
+                const int32_t sample_x =
+                    benchmark_float_floor_to_int(u);
+                const int32_t sample_y =
+                    benchmark_float_floor_to_int(v);
+
+                checksum +=
+                    (int64_t)sample_y * rotoscale_case->src_width + sample_x;
+            }
+        }
+    }
+
+    g_int_sink = checksum;
+}
+
+static void print_rotoscale_results(const char *title,
+                                    rotoscale_benchmark_fn fixed_fn,
+                                    rotoscale_benchmark_fn float_fn,
+                                    size_t repeat_count)
 {
     static const rotoscale_case_t rotoscale_cases[] = {
         { "32x32 -> 64x64 @ 15 deg",
@@ -186,7 +297,7 @@ void benchmark_print_rotoscale_results(size_t repeat_count)
         sizeof(rotoscale_cases) / sizeof(rotoscale_cases[0]);
     size_t index;
 
-    printf("\nrotoscaler benchmarks\n");
+    printf("\n%s\n", title);
     printf("repeats-per-case=%lu\n", (unsigned long)repeat_count);
     printf("%-36s %12s %14s %14s %12s\n",
            "case", "dest pixels", "fixed ns/pixel", "float ns/pixel",
@@ -199,11 +310,9 @@ void benchmark_print_rotoscale_results(size_t repeat_count)
                      rotoscale_case->dest_height) *
             (double)repeat_count;
         const double fixed_seconds =
-            run_rotoscale_benchmark(bench_fixed_rotoscaler, rotoscale_case,
-                                    repeat_count);
+            run_rotoscale_benchmark(fixed_fn, rotoscale_case, repeat_count);
         const double float_seconds =
-            run_rotoscale_benchmark(bench_float_rotoscaler, rotoscale_case,
-                                    repeat_count);
+            run_rotoscale_benchmark(float_fn, rotoscale_case, repeat_count);
         const double fixed_ns = (fixed_seconds * 1.0e9) / operations;
         const double float_ns = (float_seconds * 1.0e9) / operations;
         const double ratio = (float_ns > 0.0) ? (fixed_ns / float_ns) : 0.0;
@@ -214,4 +323,18 @@ void benchmark_print_rotoscale_results(size_t repeat_count)
                                rotoscale_case->dest_height),
                fixed_ns, float_ns, ratio);
     }
+}
+
+void benchmark_print_rotoscale_results(size_t repeat_count)
+{
+    print_rotoscale_results("rotoscaler benchmarks (incremental inverse mapping)",
+                            bench_fixed_rotoscaler, bench_float_rotoscaler,
+                            repeat_count);
+}
+
+void benchmark_print_rotoscale_direct_results(size_t repeat_count)
+{
+    print_rotoscale_results("rotoscaler benchmarks (direct inverse mapping)",
+                            bench_fixed_rotoscaler_direct,
+                            bench_float_rotoscaler_direct, repeat_count);
 }
