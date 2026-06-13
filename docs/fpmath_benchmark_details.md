@@ -29,6 +29,15 @@ Optional arguments:
 ./build/benchmark [sample-count] [repeat-count]
 ```
 
+To build or run the signed-shift multiplication and division variants:
+
+```sh
+make benchmark-shift-mul
+make run-benchmark-shift-mul BENCH_ARGS="8192 100"
+make benchmark-shift-div
+make run-benchmark-shift-div BENCH_ARGS="8192 100"
+```
+
 Defaults:
 
 - `sample-count = 16384`
@@ -99,7 +108,10 @@ This keeps runs deterministic for the same build and parameters.
 | Array | Type | Range / meaning |
 | --- | --- | --- |
 | `int_inputs` | `int32_t[]` | integers in `[-30000, 30000]` |
+| `small_int_inputs` | `int32_t[]` | integer multipliers in `[-8, 8]` |
+| `int_div_inputs` | `int32_t[]` | nonzero integer divisors in `[-16, -1] U [1, 16]` |
 | `float_inputs` | `float[]` | floats in `[-256.0, 256.0]` |
+| `double_inputs` | `double[]` | double versions of `float_inputs` |
 | `sum_inputs` | `float[]` | floats in `[-0.5, 0.5]` |
 | `div_inputs` | `float[]` | nonzero divisors roughly in `[-16.5, -0.5] U [0.5, 16.5]` |
 | `float_reciprocals` | `float[]` | `1.0f / div_inputs[i]` |
@@ -115,7 +127,7 @@ This keeps runs deterministic for the same build and parameters.
 The scalar section prints:
 
 ```text
-operation | fixed ns/op | float ns/op | fixed/float
+operation | fixed ns/op | base ns/op | fixed/base
 ```
 
 The number of operations for each row is:
@@ -126,22 +138,37 @@ sample_count * repeat_count
 
 ### Scalar rows
 
-| Row label | Fixed-point path | Floating-point path | Notes |
+| Row label | Fixed-point path | Baseline path | Notes |
 | --- | --- | --- | --- |
-| `int -> representation` | `fix32_from_int(int_inputs[i])` | `(float)int_inputs[i]` | Measures integer conversion cost |
-| `float -> representation` | `fix32_round_from_float(float_inputs[i])` | `float_inputs[i]` | Float baseline is the direct float load/use path |
-| `sum` | repeated `fix32_add(total, sum_fixed_inputs[i])` | repeated `total += sum_inputs[i]` | Small increments emphasize add throughput |
-| `multiply` | `fix32_mul(fixed_inputs[i], sum_fixed_inputs[i])` | `float_inputs[i] * sum_inputs[i]` | Uses the configured fixed multiply path |
-| `reciprocal -> fixed` | `fix32_reciprocal(fixed_div_inputs[i])` | `fix32_round_from_float(1.0f / div_inputs[i])` | Both sides produce a final fixed-point result |
-| `divide` | `fix32_div(fixed_inputs[i], fixed_div_inputs[i])` | `float_inputs[i] / div_inputs[i]` | Measures direct divide cost |
-| `mul reciprocal` | `fix32_mul(fixed_inputs[i], fixed_reciprocals[i])` | `float_inputs[i] * float_reciprocals[i]` | Models reuse of a precomputed reciprocal |
-| `ceil -> int` | `fix32_ceil_to_int(fixed_inputs[i])` | `float_ceil_to_int(float_inputs[i])` | Float baseline uses the local C helper, not `ceilf()` |
-| `floor -> int` | `fix32_floor_to_int(fixed_inputs[i])` | `float_floor_to_int(float_inputs[i])` | Same semantics on both sides |
-| `round -> int` | `fix32_round_to_int(fixed_inputs[i])` | `float_round_to_int(float_inputs[i])` | Both use half-away-from-zero logic |
-| `value -> float` | `fix32_to_float(fixed_inputs[i])` | `float_inputs[i]` | Fixed converts back to float; float baseline is identity |
-| `ceil -> float` | `fix32_ceil_to_float(fixed_inputs[i])` | `float_ceil_to_float(float_inputs[i])` | Result is quantized to whole-number float |
-| `floor -> float` | `fix32_floor_to_float(fixed_inputs[i])` | `float_floor_to_float(float_inputs[i])` | Result is quantized to whole-number float |
-| `round -> float` | `fix32_round_to_float(fixed_inputs[i])` | `float_round_to_float(float_inputs[i])` | Result is quantized to whole-number float |
+| `int -> representation` | `fix32_from_int(int_inputs[i])` | `(float)int_inputs[i]` | Integer conversion |
+| `float -> fixed trunc` | `fix32_from_float(float_inputs[i])` | `float_inputs[i]` | Truncating float conversion |
+| `float -> fixed round` | `fix32_round_from_float(float_inputs[i])` | `float_inputs[i]` | Rounded float conversion |
+| `double -> fixed trunc` | `fix32_from_double(double_inputs[i])` | `double_inputs[i]` | Truncating double conversion |
+| `double -> fixed round` | `fix32_round_from_double(double_inputs[i])` | `double_inputs[i]` | Rounded double conversion |
+| `sum` | repeated `fix32_add()` | repeated float addition | Accumulation throughput |
+| `subtract` | `fix32_sub()` | float subtraction | Subtraction throughput |
+| `multiply` | `fix32_mul()` | float multiplication | Fixed-by-fixed multiplication |
+| `multiply by int` | `fix32_mul_by_int()` | float-by-int multiplication | Integer scaling |
+| `reciprocal by int` | `fix32_reciprocal_by_int()` | float reciprocal converted to fixed | Integer reciprocal |
+| `reciprocal -> fixed` | `fix32_reciprocal()` | float reciprocal converted to fixed | Fixed reciprocal |
+| `divide by int` | `fix32_div_by_int()` | float-by-int division | Integer division |
+| `divide` | `fix32_div()` | float division | Uses nonnegative numerators so the signed-shift variant stays within its documented domain |
+| `mul reciprocal` | `fix32_mul()` with a precomputed reciprocal | float multiplication with a reciprocal | Reciprocal reuse |
+| `trunc -> int` | `fix32_trunc_to_int()` | float cast to integer | Truncation toward zero |
+| `ceil -> int` | `fix32_ceil_to_int()` | local float ceil helper | Integer ceiling |
+| `floor -> int` | `fix32_floor_to_int()` | local float floor helper | Integer floor |
+| `round -> int` | `fix32_round_to_int()` | local float round helper | Half-away-from-zero rounding |
+| `floor -> fixed` | `fix32_floor()` | float floor helper | Result remains in its native representation |
+| `ceil -> fixed` | `fix32_ceil()` | float ceil helper | Result remains in its native representation |
+| `round -> fixed` | `fix32_round()` | float round helper | Result remains in its native representation |
+| `value -> float` | `fix32_to_float()` | float identity | Exact value conversion |
+| `ceil -> float` | `fix32_ceil_to_float()` | float ceil helper | Whole-number float result |
+| `floor -> float` | `fix32_floor_to_float()` | float floor helper | Whole-number float result |
+| `round -> float` | `fix32_round_to_float()` | float round helper | Whole-number float result |
+| `value -> double` | `fix32_to_double()` | double identity | Exact value conversion |
+| `ceil -> double` | `fix32_ceil_to_double()` | local double ceil helper | Whole-number double result |
+| `floor -> double` | `fix32_floor_to_double()` | local double floor helper | Whole-number double result |
+| `round -> double` | `fix32_round_to_double()` | local double round helper | Whole-number double result |
 
 ### Reciprocal benchmark detail
 

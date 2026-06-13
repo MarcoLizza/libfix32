@@ -49,6 +49,8 @@ void test_rounding(void)
     TEST_EXPECT_EQ(-1, fix32_trunc_to_int(negative));
     TEST_EXPECT_EQ(2, fix32_round_to_int(positive_half));
     TEST_EXPECT_EQ(-2, fix32_round_to_int(negative_half));
+    TEST_EXPECT_EQ(2, fix32_round_to_int(fix32_from_int(2)));
+    TEST_EXPECT_EQ(-2, fix32_round_to_int(fix32_from_int(-2)));
     TEST_EXPECT_EQ(1, fix32_round_to_int(below_positive_half));
     TEST_EXPECT_EQ(-1, fix32_round_to_int(above_negative_half));
     TEST_EXPECT_EQ(0, fix32_round_to_int(0));
@@ -73,6 +75,9 @@ void test_rounding(void)
     TEST_EXPECT_EQ(fix32_from_int(-1), fix32_ceil(negative));
     TEST_EXPECT_EQ(fix32_from_int(2), fix32_round(positive_half));
     TEST_EXPECT_EQ(fix32_from_int(-2), fix32_round(negative_half));
+    TEST_EXPECT_EQ(fix32_from_int(2), fix32_floor(fix32_from_int(2)));
+    TEST_EXPECT_EQ(fix32_from_int(-2), fix32_ceil(fix32_from_int(-2)));
+    TEST_EXPECT_EQ(fix32_from_int(2), fix32_round(fix32_from_int(2)));
 
     TEST_EXPECT_EQ(1, FIX32_ITRUNC(positive));
     TEST_EXPECT_EQ(-2, FIX32_IFLOOR(negative));

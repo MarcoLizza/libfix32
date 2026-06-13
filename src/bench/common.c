@@ -75,7 +75,13 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
     data->repeat_count = repeat_count;
 
     data->int_inputs = checked_alloc(sample_count, sizeof(*data->int_inputs));
+    data->small_int_inputs =
+        checked_alloc(sample_count, sizeof(*data->small_int_inputs));
+    data->int_div_inputs =
+        checked_alloc(sample_count, sizeof(*data->int_div_inputs));
     data->float_inputs = checked_alloc(sample_count, sizeof(*data->float_inputs));
+    data->double_inputs =
+        checked_alloc(sample_count, sizeof(*data->double_inputs));
     data->sum_inputs = checked_alloc(sample_count, sizeof(*data->sum_inputs));
     data->div_inputs = checked_alloc(sample_count, sizeof(*data->div_inputs));
     data->float_reciprocals =
@@ -88,17 +94,26 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
     data->fixed_reciprocals =
         checked_alloc(sample_count, sizeof(*data->fixed_reciprocals));
 
-    if (data->int_inputs == NULL || data->float_inputs == NULL ||
-        data->sum_inputs == NULL || data->div_inputs == NULL ||
-        data->float_reciprocals == NULL || data->fixed_inputs == NULL ||
-        data->sum_fixed_inputs == NULL || data->fixed_div_inputs == NULL ||
-        data->fixed_reciprocals == NULL) {
+    if (data->int_inputs == NULL || data->small_int_inputs == NULL ||
+        data->int_div_inputs == NULL || data->float_inputs == NULL ||
+        data->double_inputs == NULL || data->sum_inputs == NULL ||
+        data->div_inputs == NULL || data->float_reciprocals == NULL ||
+        data->fixed_inputs == NULL || data->sum_fixed_inputs == NULL ||
+        data->fixed_div_inputs == NULL || data->fixed_reciprocals == NULL) {
         return 0;
     }
 
     for (index = 0; index < sample_count; ++index) {
         data->int_inputs[index] = (int32_t)(lcg_next(&state) % 60001u) - 30000;
+        data->small_int_inputs[index] =
+            (int32_t)(lcg_next(&state) % 17u) - 8;
+        data->int_div_inputs[index] =
+            (int32_t)(lcg_next(&state) % 16u) + 1;
+        if ((lcg_next(&state) & 1u) != 0u) {
+            data->int_div_inputs[index] = -data->int_div_inputs[index];
+        }
         data->float_inputs[index] = random_float(&state, -256.0f, 256.0f);
+        data->double_inputs[index] = (double)data->float_inputs[index];
         data->sum_inputs[index] = random_float(&state, -0.5f, 0.5f);
         data->div_inputs[index] = random_divisor(&state);
         data->float_reciprocals[index] = 1.0f / data->div_inputs[index];
@@ -118,7 +133,10 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
 void benchmark_data_destroy(benchmark_data_t *data)
 {
     free(data->int_inputs);
+    free(data->small_int_inputs);
+    free(data->int_div_inputs);
     free(data->float_inputs);
+    free(data->double_inputs);
     free(data->sum_inputs);
     free(data->div_inputs);
     free(data->float_reciprocals);

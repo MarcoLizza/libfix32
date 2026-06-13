@@ -33,6 +33,11 @@ void test_conversions(void)
     const double positive_double = 1.75 / (double)FIX32_ONE;
     const double negative_double = -1.75 / (double)FIX32_ONE;
 
+    TEST_EXPECT_EQ(FIX32_ONE / 2, FIX32_HALF);
+    TEST_EXPECT_EQ(FIX32_ONE - 1, FIX32_FRACTIONAL_MASK);
+    TEST_EXPECT_EQ(~FIX32_FRACTIONAL_MASK, FIX32_INTEGER_MASK);
+    TEST_EXPECT_EQ(INT32_MIN, (int64_t)FIX32_INT_MIN * FIX32_ONE);
+
     TEST_EXPECT_EQ(INT32_MIN, fix32_to_raw(fix32_from_raw(INT32_MIN)));
     TEST_EXPECT_EQ(-1, fix32_to_raw(fix32_from_raw(-1)));
     TEST_EXPECT_EQ(0, fix32_to_raw(fix32_from_raw(0)));
@@ -80,17 +85,35 @@ void test_conversions(void)
         fix32_to_double(fix32_from_raw(-(FIX32_ONE + FIX32_HALF))), 0.0);
 
     TEST_EXPECT_EQ(fix32_from_int(2), FIX32_FROM_INT(2));
+    TEST_EXPECT_EQ(fix32_from_int(-2), FIX32_FROM_INT(-2));
 #if !defined(FIX32_NO_ROUNDING)
     TEST_EXPECT_EQ(2, FIX32_FROM_FLOAT(positive_float));
     TEST_EXPECT_EQ(2, FIX32_FROM_DOUBLE(positive_double));
     TEST_EXPECT_EQ(2, FIX32_TO_INT(fix32_from_float(1.75f)));
+    TEST_EXPECT_EQ(-2, FIX32_FROM_FLOAT(negative_float));
+    TEST_EXPECT_EQ(-2, FIX32_FROM_DOUBLE(negative_double));
+    TEST_EXPECT_EQ(-2, FIX32_TO_INT(fix32_from_float(-1.75f)));
 #else
     TEST_EXPECT_EQ(1, FIX32_FROM_FLOAT(positive_float));
     TEST_EXPECT_EQ(1, FIX32_FROM_DOUBLE(positive_double));
     TEST_EXPECT_EQ(1, FIX32_TO_INT(fix32_from_float(1.75f)));
+    TEST_EXPECT_EQ(-1, FIX32_FROM_FLOAT(negative_float));
+    TEST_EXPECT_EQ(-1, FIX32_FROM_DOUBLE(negative_double));
+    TEST_EXPECT_EQ(-1, FIX32_TO_INT(fix32_from_float(-1.75f)));
 #endif
     TEST_EXPECT_FLOAT_NEAR(1.5f,
                            FIX32_TO_FLOAT(fix32_from_float(1.5f)), 0.0f);
     TEST_EXPECT_DOUBLE_NEAR(1.5,
                             FIX32_TO_DOUBLE(fix32_from_double(1.5)), 0.0);
+#ifdef TEST_EXPECT_USE_64_BIT
+    TEST_EXPECT_EQ(TEST_EXPECT_USE_64_BIT, FIX32_USE_64_BIT);
+#endif
+#ifdef TEST_EXPECT_SIGNED_SHIFT_MUL
+    TEST_EXPECT_EQ(TEST_EXPECT_SIGNED_SHIFT_MUL,
+                   FIX32_USE_SIGNED_SHIFT_MUL);
+#endif
+#ifdef TEST_EXPECT_SIGNED_SHIFT_DIV
+    TEST_EXPECT_EQ(TEST_EXPECT_SIGNED_SHIFT_DIV,
+                   FIX32_USE_SIGNED_SHIFT_DIV);
+#endif
 }

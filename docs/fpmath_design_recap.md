@@ -211,16 +211,37 @@ This is why multiplication is the main place where an intermediate wider than 32
 
 ### Default multiply
 
-`fix32_mul()` defaults to a 64-bit intermediate:
+`fix32_mul()` defaults to a 64-bit intermediate and defined signed division:
 
 ```c
-((int64_t)left * (int64_t)right) >> FIX32_FRACTIONAL_BITS
+((int64_t)left * (int64_t)right) / FIX32_ONE
 ```
 
 Rationale:
 
 - Safe default for general use.
 - Prevents overflow in the raw product before the post-multiply shift.
+- Truncates negative results toward zero without relying on signed-shift
+  behavior.
+
+### Optional signed-shift multiply scaling
+
+Arithmetic right-shift scaling can be enabled with:
+
+```c
+#define FIX32_USE_SIGNED_SHIFT_MUL 1
+```
+
+This path can be benchmarked with:
+
+```sh
+make run-benchmark-shift-mul
+```
+
+For negative products, signed right shift is implementation-defined in C99 and
+typically rounds toward negative infinity on two's-complement targets. That can
+differ by one raw unit from the default division path, which truncates toward
+zero.
 
 ### Optional 32-bit multiply path
 
@@ -327,6 +348,15 @@ The original signed-shift scaling path can be enabled before including the heade
 #define FIX32_USE_SIGNED_SHIFT_DIV 1
 ```
 
+This path can be benchmarked with:
+
+```sh
+make run-benchmark-shift-div
+```
+
+The scalar division row uses nonnegative numerators so this benchmark does not
+invoke the signed-left-shift path's undefined behavior.
+
 That path computes:
 
 ```c
@@ -364,9 +394,9 @@ Benchmark note:
 
 - The scalar benchmark now measures reciprocal computation itself as a separate case.
 - The fixed path uses `fix32_reciprocal(x)`.
-- The floating-point baseline computes `1.0f / x` in float and then converts that reciprocal back to fixed with `fix32_from_float()`.
+- The floating-point baseline computes `1.0f / x` in float and then converts that reciprocal back to fixed with `fix32_round_from_float()`.
 - This keeps both paths comparable because they produce the same final fixed-point representation.
-- For non-exact reciprocals, the two paths may differ by one raw LSB because the fixed path truncates through integer division while `fix32_from_float()` rounds to nearest.
+- For non-exact reciprocals, the two paths may differ by one raw LSB because the fixed path truncates through integer division while `fix32_round_from_float()` rounds to nearest.
 
 ## Why the benchmark is split into scalar and workload sections
 
@@ -376,14 +406,14 @@ The benchmark has four layers.
 
 These measure the isolated cost of:
 
-- int/float to representation
-- add
-- multiply
-- reciprocal to fixed
-- divide
-- multiply by precomputed reciprocal
-- ceil/floor/round to int
-- value/ceil/floor/round to float
+- integer, float, and double conversion to fixed-point
+- add and subtract
+- fixed and integer multiply/divide operations
+- integer and fixed-point reciprocals
+- multiply by a precomputed reciprocal
+- trunc/ceil/floor/round to integer
+- fixed-valued floor/ceil/round
+- value/ceil/floor/round conversion to float and double
 
 Rationale:
 

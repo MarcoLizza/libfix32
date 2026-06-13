@@ -37,7 +37,10 @@ typedef struct benchmark_data {
     size_t sample_count;
     size_t repeat_count;
     int32_t *int_inputs;
+    int32_t *small_int_inputs;
+    int32_t *int_div_inputs;
     float *float_inputs;
+    double *double_inputs;
     float *sum_inputs;
     float *div_inputs;
     float *float_reciprocals;

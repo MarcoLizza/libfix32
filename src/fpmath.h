@@ -65,9 +65,17 @@
     #define FIX32_USE_ARITHMETIC_SHIFT_FLOOR 1
 #endif  /* !defined(FIX32_USE_ARITHMETIC_SHIFT_FLOOR) */
 
+// Set to 1 before including this header to scale multiplication results with a
+// signed right shift. This is implementation-defined when the result is
+// negative. The default multiplication path is defined for every `fix32_t`
+// value and truncates toward zero instead of relying on shift semantics.
+#if !defined(FIX32_USE_SIGNED_SHIFT_MUL)
+    #define FIX32_USE_SIGNED_SHIFT_MUL 0
+#endif  /* !defined(FIX32_USE_SIGNED_SHIFT_MUL) */
+
 // Set to 1 before including this header to scale division numerators with a
 // signed left shift. This invokes undefined behavior when the numerator is
-// negative. The default multiplication path is defined for every `fix32_t`
+// negative. The default division path is defined for every `fix32_t`
 // value and is typically optimized to the same machine instruction.
 #if !defined(FIX32_USE_SIGNED_SHIFT_DIV)
     #define FIX32_USE_SIGNED_SHIFT_DIV 0
@@ -116,11 +124,11 @@ static inline int32_t fix32_to_raw(fix32_t value)
 // behavior by overflowing the intermediate calculations.
 static inline fix32_t fix32_from_int(int32_t value)
 {
-#if defined(FIX32_USE_64_BIT)
+#if FIX32_USE_64_BIT
     return value * (int64_t)FIX32_ONE;
-#else   /* defined(FIX32_USE_64_BIT) */
+#else   /* FIX32_USE_64_BIT */
     return value * (int64_t)FIX32_ONE;
-#endif  /* defined(FIX32_USE_64_BIT) */
+#endif  /* FIX32_USE_64_BIT */
 }
 
 static inline fix32_t fix32_from_float(float value)
@@ -167,10 +175,15 @@ static inline fix32_t fix32_mul_by_int(fix32_t left, int right)
 static inline fix32_t fix32_mul(fix32_t left, fix32_t right)
 {
 #if FIX32_USE_64_BIT
-    return (fix32_t)(((int64_t)left * (int64_t)right) >> FIX32_FRACTIONAL_BITS);
+    int64_t product = (int64_t)left * (int64_t)right;
 #else   /* FIX32_USE_64_BIT */
-    return (fix32_t)((left * right) >> FIX32_FRACTIONAL_BITS);
+    int32_t product = (int64_t)left * (int64_t)right;
 #endif  /* FIX32_USE_64_BIT */
+#if FIX32_USE_SIGNED_SHIFT_MUL
+    return (fix32_t)(product >> FIX32_FRACTIONAL_BITS);
+#else   /* FIX32_USE_SIGNED_SHIFT_MUL */
+    return (fix32_t)(product / FIX32_ONE);
+#endif  /* FIX32_USE_SIGNED_SHIFT_MUL */
 }
 
 static inline fix32_t fix32_div_by_int(fix32_t numerator, int32_t denominator)
@@ -263,11 +276,11 @@ static inline int fix32_trunc_to_int(fix32_t value)
 
 static inline int32_t fix32_round_to_int(fix32_t value)
 {
-#if defined(FIX32_USE_64_BIT)
+#if FIX32_USE_64_BIT
     int64_t aux = (int64_t)value; // Use `int64_t` to avoid overflow when adding `FIX32_ONE_HALF`.
-#else   /* defined(FIX32_USE_64_BIT) */
+#else   /* FIX32_USE_64_BIT */
     int32_t aux = value;
-#endif  /* defined(FIX32_USE_64_BIT) */
+#endif  /* FIX32_USE_64_BIT */
     aux += (aux >= 0) ? FIX32_HALF : -FIX32_HALF;
     return (int32_t)(aux / FIX32_ONE); // Dividing (not shifting) will round to the nearest integer, with ties rounding away from zero, which is what we want for negative numbers.
 }

@@ -47,6 +47,11 @@ void test_arithmetic(void)
     TEST_EXPECT_EQ(fix32_from_float(-3.0f),
                    fix32_mul(one_and_a_half, fix32_from_int(-2)));
     TEST_EXPECT_EQ(0, fix32_mul(0, fix32_from_int(100)));
+#if FIX32_USE_SIGNED_SHIFT_MUL
+    TEST_EXPECT_EQ(-1, fix32_mul(fix32_from_raw(1), fix32_from_raw(-1)));
+#else
+    TEST_EXPECT_EQ(0, fix32_mul(fix32_from_raw(1), fix32_from_raw(-1)));
+#endif
     TEST_EXPECT_EQ(fix32_from_float(4.5f),
                    fix32_mul_by_int(one_and_a_half, 3));
     TEST_EXPECT_EQ(fix32_from_float(-3.0f),
