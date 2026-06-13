@@ -90,7 +90,7 @@ static void bench_fixed_from_float(const benchmark_data_t *data)
 
     for (repeat = 0; repeat < data->repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
-            const fix32_t value = fix32_from_float(inputs[index]);
+            const fix32_t value = fix32_round_from_float(inputs[index]);
             checksum += value;
         }
     }
@@ -218,7 +218,8 @@ static void bench_float_reciprocal(const benchmark_data_t *data)
 
     for (repeat = 0; repeat < data->repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
-            const fix32_t reciprocal = fix32_from_float(1.0f / inputs[index]);
+            const fix32_t reciprocal =
+                fix32_round_from_float(1.0f / inputs[index]);
             checksum += reciprocal;
         }
     }

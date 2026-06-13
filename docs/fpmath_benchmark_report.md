@@ -29,8 +29,7 @@ Rationale:
 
 Benchmark mode:
 
-- `src/bench/common.h` disables `FIX32_ENABLE_DEBUG_CHECKS` before including the header.
-- These numbers therefore describe arithmetic behavior, not debug-assert overhead.
+- Fixed-point inputs are created with `fix32_round_from_float()` so the recorded run uses nearest-value conversion rather than the truncating `fix32_from_float()` constructor.
 
 ## Raw output
 

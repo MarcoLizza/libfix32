@@ -28,9 +28,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifndef FIX32_ENABLE_DEBUG_CHECKS
-#define FIX32_ENABLE_DEBUG_CHECKS 0
-#endif
 #include "fpmath.h"
 
 #define DEFAULT_SAMPLE_COUNT 16384u

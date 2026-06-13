@@ -59,6 +59,22 @@ void test_expect_float_near(float expected, float actual, float tolerance,
     }
 }
 
+void test_expect_double_near(double expected, double actual, double tolerance,
+                             const char *expression, const char *file, int line)
+{
+    const double difference = (actual >= expected)
+        ? actual - expected
+        : expected - actual;
+
+    ++g_test_assertions;
+
+    if (difference > tolerance) {
+        fprintf(stderr, "%s:%d: %s: expected %.17g +/- %.17g, got %.17g\n",
+                file, line, expression, expected, tolerance, actual);
+        ++g_test_failures;
+    }
+}
+
 int main(void)
 {
     test_conversions();

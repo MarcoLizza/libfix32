@@ -122,8 +122,7 @@ What is checked in debug builds:
 
 Benchmark note:
 
-- `src/bench/common.h` forces `FIX32_ENABLE_DEBUG_CHECKS` to `0` before including the header.
-- This keeps the timing focused on arithmetic cost rather than debug assertion overhead.
+- The benchmark explicitly uses `fix32_round_from_float()` when it needs nearest-value conversion.
 
 Interaction with the multiply-range hint:
 

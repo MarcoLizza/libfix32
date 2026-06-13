@@ -35,12 +35,22 @@ void test_arithmetic(void)
     TEST_EXPECT_EQ(fix32_from_float(-3.0f),
                    fix32_add(fix32_from_float(-1.25f),
                              fix32_from_float(-1.75f)));
+    TEST_EXPECT_EQ(fix32_from_float(1.75f),
+                   fix32_sub(fix32_from_float(2.25f),
+                             fix32_from_float(0.5f)));
+    TEST_EXPECT_EQ(fix32_from_float(-1.75f),
+                   fix32_sub(fix32_from_float(-1.25f),
+                             fix32_from_float(0.5f)));
 
     TEST_EXPECT_EQ(fix32_from_float(3.375f),
                    fix32_mul(one_and_a_half, two_and_a_quarter));
     TEST_EXPECT_EQ(fix32_from_float(-3.0f),
                    fix32_mul(one_and_a_half, fix32_from_int(-2)));
     TEST_EXPECT_EQ(0, fix32_mul(0, fix32_from_int(100)));
+    TEST_EXPECT_EQ(fix32_from_float(4.5f),
+                   fix32_mul_by_int(one_and_a_half, 3));
+    TEST_EXPECT_EQ(fix32_from_float(-3.0f),
+                   fix32_mul_by_int(one_and_a_half, -2));
 
     TEST_EXPECT_EQ(fix32_from_float(1.5f),
                    fix32_div_by_int(fix32_from_int(3), 2));
@@ -52,9 +62,11 @@ void test_arithmetic(void)
                              fix32_from_float(2.5f)));
     TEST_EXPECT_EQ(fix32_from_float(-2.5f),
                    fix32_div(fix32_from_int(5), fix32_from_int(-2)));
-    TEST_EXPECT_EQ(FIX32_SCALE / 3,
+    TEST_EXPECT_EQ(FIX32_ONE / 3,
                    fix32_div(fix32_from_int(1), fix32_from_int(3)));
 
+    TEST_EXPECT_EQ(FIX32_ONE / 4, fix32_reciprocal_by_int(4));
+    TEST_EXPECT_EQ(-(FIX32_ONE / 2), fix32_reciprocal_by_int(-2));
     TEST_EXPECT_EQ(fix32_from_float(0.25f),
                    fix32_reciprocal(fix32_from_int(4)));
     TEST_EXPECT_EQ(fix32_from_float(-0.5f),

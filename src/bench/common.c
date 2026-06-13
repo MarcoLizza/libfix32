@@ -102,9 +102,12 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         data->sum_inputs[index] = random_float(&state, -0.5f, 0.5f);
         data->div_inputs[index] = random_divisor(&state);
         data->float_reciprocals[index] = 1.0f / data->div_inputs[index];
-        data->fixed_inputs[index] = fix32_from_float(data->float_inputs[index]);
-        data->sum_fixed_inputs[index] = fix32_from_float(data->sum_inputs[index]);
-        data->fixed_div_inputs[index] = fix32_from_float(data->div_inputs[index]);
+        data->fixed_inputs[index] =
+            fix32_round_from_float(data->float_inputs[index]);
+        data->sum_fixed_inputs[index] =
+            fix32_round_from_float(data->sum_inputs[index]);
+        data->fixed_div_inputs[index] =
+            fix32_round_from_float(data->div_inputs[index]);
         data->fixed_reciprocals[index] =
             fix32_reciprocal(data->fixed_div_inputs[index]);
     }

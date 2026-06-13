@@ -57,8 +57,10 @@ static double run_rotoscale_benchmark(rotoscale_benchmark_fn fn,
 static void bench_fixed_rotoscaler(const rotoscale_case_t *rotoscale_case,
                                    size_t repeat_count)
 {
-    const fix32_t cos_angle = fix32_from_float(rotoscale_case->cos_angle);
-    const fix32_t sin_angle = fix32_from_float(rotoscale_case->sin_angle);
+    const fix32_t cos_angle =
+        fix32_round_from_float(rotoscale_case->cos_angle);
+    const fix32_t sin_angle =
+        fix32_round_from_float(rotoscale_case->sin_angle);
     const fix32_t scale_x =
         fix32_div_by_int(fix32_from_int(rotoscale_case->src_width),
                          rotoscale_case->dest_width);

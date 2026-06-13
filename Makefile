@@ -24,19 +24,22 @@ TEST_SOURCES := \
 BENCHMARK := $(BUILD_DIR)/benchmark
 TEST_RUNNER := $(BUILD_DIR)/test
 PORTABLE_TEST_RUNNER := $(BUILD_DIR)/test-portable-floor
+NO_ROUNDING_TEST_RUNNER := $(BUILD_DIR)/test-no-rounding
 
 .PHONY: all benchmark run-benchmark test check clean
 
-all: $(TEST_RUNNER) $(PORTABLE_TEST_RUNNER) $(BENCHMARK)
+all: $(TEST_RUNNER) $(PORTABLE_TEST_RUNNER) $(NO_ROUNDING_TEST_RUNNER) \
+	$(BENCHMARK)
 
 benchmark: $(BENCHMARK)
 
 run-benchmark: $(BENCHMARK)
 	$(BENCHMARK) $(BENCH_ARGS)
 
-test check: $(TEST_RUNNER) $(PORTABLE_TEST_RUNNER)
+test check: $(TEST_RUNNER) $(PORTABLE_TEST_RUNNER) $(NO_ROUNDING_TEST_RUNNER)
 	$(TEST_RUNNER)
 	$(PORTABLE_TEST_RUNNER)
+	$(NO_ROUNDING_TEST_RUNNER)
 
 $(BENCHMARK): $(BENCH_SOURCES) src/bench/common.h src/fpmath.h
 	@mkdir -p $(@D)
@@ -52,6 +55,11 @@ $(PORTABLE_TEST_RUNNER): $(TEST_SOURCES) src/test/test.h src/fpmath.h
 	@mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(CFLAGS) \
 		-DFIX32_USE_ARITHMETIC_SHIFT_FLOOR=0 $(TEST_SOURCES) $(LDFLAGS) -o $@ $(LDLIBS)
+
+$(NO_ROUNDING_TEST_RUNNER): $(TEST_SOURCES) src/test/test.h src/fpmath.h
+	@mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(CFLAGS) \
+		-DFIX32_NO_ROUNDING $(TEST_SOURCES) $(LDFLAGS) -o $@ $(LDLIBS)
 
 clean:
 	$(RM) -r $(BUILD_DIR)

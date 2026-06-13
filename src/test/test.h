@@ -37,6 +37,10 @@
     test_expect_float_near((expected), (actual), (tolerance), #actual, \
                            __FILE__, __LINE__)
 
+#define TEST_EXPECT_DOUBLE_NEAR(expected, actual, tolerance) \
+    test_expect_double_near((expected), (actual), (tolerance), #actual, \
+                            __FILE__, __LINE__)
+
 extern unsigned int g_test_assertions;
 extern unsigned int g_test_failures;
 
@@ -44,6 +48,8 @@ void test_expect_int64(int64_t expected, int64_t actual,
                        const char *expression, const char *file, int line);
 void test_expect_float_near(float expected, float actual, float tolerance,
                             const char *expression, const char *file, int line);
+void test_expect_double_near(double expected, double actual, double tolerance,
+                             const char *expression, const char *file, int line);
 
 void test_conversions(void);
 void test_arithmetic(void);

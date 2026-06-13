@@ -59,18 +59,9 @@ Each table also prints a `fixed/float` ratio:
 
 ## Important benchmark configuration choices
 
-### Debug checks are disabled for the benchmark
+### Fixed inputs use explicit rounded conversion
 
-Before including `fpmath.h`, `src/bench/common.h` sets:
-
-```c
-#define FIX32_ENABLE_DEBUG_CHECKS 0
-```
-
-Rationale:
-
-- keep the measurements about arithmetic cost
-- avoid mixing debug assertion overhead into the timing
+The benchmark uses `fix32_round_from_float()` when preparing fixed-point inputs and when measuring conversion to a fixed-point result. This preserves the benchmark's original nearest-value conversion semantics now that `fix32_from_float()` is the explicit truncating constructor.
 
 ### The benchmark prevents dead-code elimination
 
@@ -112,9 +103,9 @@ This keeps runs deterministic for the same build and parameters.
 | `sum_inputs` | `float[]` | floats in `[-0.5, 0.5]` |
 | `div_inputs` | `float[]` | nonzero divisors roughly in `[-16.5, -0.5] U [0.5, 16.5]` |
 | `float_reciprocals` | `float[]` | `1.0f / div_inputs[i]` |
-| `fixed_inputs` | `fix32_t[]` | `fix32_from_float(float_inputs[i])` |
-| `sum_fixed_inputs` | `fix32_t[]` | `fix32_from_float(sum_inputs[i])` |
-| `fixed_div_inputs` | `fix32_t[]` | `fix32_from_float(div_inputs[i])` |
+| `fixed_inputs` | `fix32_t[]` | `fix32_round_from_float(float_inputs[i])` |
+| `sum_fixed_inputs` | `fix32_t[]` | `fix32_round_from_float(sum_inputs[i])` |
+| `fixed_div_inputs` | `fix32_t[]` | `fix32_round_from_float(div_inputs[i])` |
 | `fixed_reciprocals` | `fix32_t[]` | `fix32_reciprocal(fixed_div_inputs[i])` |
 
 `div_inputs` deliberately avoids zero so the division and reciprocal rows do not benchmark divide-by-zero handling.
@@ -138,10 +129,10 @@ sample_count * repeat_count
 | Row label | Fixed-point path | Floating-point path | Notes |
 | --- | --- | --- | --- |
 | `int -> representation` | `fix32_from_int(int_inputs[i])` | `(float)int_inputs[i]` | Measures integer conversion cost |
-| `float -> representation` | `fix32_from_float(float_inputs[i])` | `float_inputs[i]` | Float baseline is the direct float load/use path |
+| `float -> representation` | `fix32_round_from_float(float_inputs[i])` | `float_inputs[i]` | Float baseline is the direct float load/use path |
 | `sum` | repeated `fix32_add(total, sum_fixed_inputs[i])` | repeated `total += sum_inputs[i]` | Small increments emphasize add throughput |
 | `multiply` | `fix32_mul(fixed_inputs[i], sum_fixed_inputs[i])` | `float_inputs[i] * sum_inputs[i]` | Uses the configured fixed multiply path |
-| `reciprocal -> fixed` | `fix32_reciprocal(fixed_div_inputs[i])` | `fix32_from_float(1.0f / div_inputs[i])` | Both sides produce a final fixed-point result |
+| `reciprocal -> fixed` | `fix32_reciprocal(fixed_div_inputs[i])` | `fix32_round_from_float(1.0f / div_inputs[i])` | Both sides produce a final fixed-point result |
 | `divide` | `fix32_div(fixed_inputs[i], fixed_div_inputs[i])` | `float_inputs[i] / div_inputs[i]` | Measures direct divide cost |
 | `mul reciprocal` | `fix32_mul(fixed_inputs[i], fixed_reciprocals[i])` | `float_inputs[i] * float_reciprocals[i]` | Models reuse of a precomputed reciprocal |
 | `ceil -> int` | `fix32_ceil_to_int(fixed_inputs[i])` | `float_ceil_to_int(float_inputs[i])` | Float baseline uses the local C helper, not `ceilf()` |
@@ -165,7 +156,7 @@ fix32_reciprocal(x)
 Floating-point side:
 
 ```c
-fix32_from_float(1.0f / x)
+fix32_round_from_float(1.0f / x)
 ```
 
 The reason for converting the float reciprocal back to fixed is that this row is meant to compare **reciprocal computation as a way to obtain a fixed-point reciprocal value**, not merely a raw float reciprocal.
@@ -174,7 +165,7 @@ One subtlety:
 
 - `fix32_reciprocal()` is based on `fix32_div()`
 - `fix32_div()` inherits truncation from integer division
-- `fix32_from_float()` rounds to nearest using the library's explicit conversion rule
+- `fix32_round_from_float()` rounds to nearest using the library's explicit conversion rule
 
 So for reciprocals that are not exactly representable, the two paths can differ by **one raw least-significant bit**. That is expected and reflects the different rounding/truncation behavior.
 
@@ -445,7 +436,7 @@ seconds * 1e9 / (dest_width * dest_height * repeat_count)
 
 Examples:
 
-- Is `fix32_from_float()` more expensive than leaving a value as float?
+- Is `fix32_round_from_float()` more expensive than leaving a value as float?
 - How expensive is `fix32_mul()` under the current 32-bit or 64-bit multiply configuration?
 - Is direct divide or reciprocal reuse a better fit for the intended workload?
 

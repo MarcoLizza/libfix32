@@ -157,20 +157,20 @@ static inline fix32_t fix32_sub(fix32_t left, fix32_t right)
 
 static inline fix32_t fix32_mul_by_int(fix32_t left, int right)
 {
-#if FIX32_USE_64BIT_MUL
+#if FIX32_USE_64_BIT
     return (fix32_t)((int64_t)left * (int64_t)right);
-#else   /* FIX32_USE_64BIT_MUL */
+#else   /* FIX32_USE_64_BIT */
     return (fix32_t)(left * right);
-#endif  /* FIX32_USE_64BIT_MUL */
+#endif  /* FIX32_USE_64_BIT */
 }
 
 static inline fix32_t fix32_mul(fix32_t left, fix32_t right)
 {
-#if FIX32_USE_64BIT_MUL
+#if FIX32_USE_64_BIT
     return (fix32_t)(((int64_t)left * (int64_t)right) >> FIX32_FRACTIONAL_BITS);
-#else   /* FIX32_USE_64BIT_MUL */
+#else   /* FIX32_USE_64_BIT */
     return (fix32_t)((left * right) >> FIX32_FRACTIONAL_BITS);
-#endif  /* FIX32_USE_64BIT_MUL */
+#endif  /* FIX32_USE_64_BIT */
 }
 
 static inline fix32_t fix32_div_by_int(fix32_t numerator, int32_t denominator)
@@ -337,8 +337,8 @@ static inline fix32_t fix32_round(fix32_t value)
 // defining the `FIX32_NO_ROUNDING` macro.
 #define FIX32_FROM_INT(v) fix32_from_int(v)
 #if !defined(FIX32_NO_ROUNDING)
-    #define FIX32_FROM_FLOAT(v) fix32_from_float_round(v)
-    #define FIX32_FROM_DOUBLE(v) fix32_from_double_round(v)
+    #define FIX32_FROM_FLOAT(v) fix32_round_from_float(v)
+    #define FIX32_FROM_DOUBLE(v) fix32_round_from_double(v)
     #define FIX32_TO_INT(v) fix32_round_to_int(v)
 #else   /* !defined(FIX32_NO_ROUNDING) */
     #define FIX32_FROM_FLOAT(v) fix32_from_float(v)

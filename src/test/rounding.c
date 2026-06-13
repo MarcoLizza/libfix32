@@ -31,9 +31,9 @@ void test_rounding(void)
     const fix32_t positive_half = fix32_from_float(1.5f);
     const fix32_t negative_half = fix32_from_float(-1.5f);
     const fix32_t below_positive_half =
-        fix32_from_raw(FIX32_SCALE + FIX32_HALF - 1);
+        fix32_from_raw(FIX32_ONE + FIX32_HALF - 1);
     const fix32_t above_negative_half =
-        fix32_from_raw(-(FIX32_SCALE + FIX32_HALF - 1));
+        fix32_from_raw(-(FIX32_ONE + FIX32_HALF - 1));
 
     TEST_EXPECT_EQ(1, fix32_floor_to_int(positive));
     TEST_EXPECT_EQ(-2, fix32_floor_to_int(negative));
@@ -45,6 +45,8 @@ void test_rounding(void)
     TEST_EXPECT_EQ(2, fix32_ceil_to_int(fix32_from_int(2)));
     TEST_EXPECT_EQ(-2, fix32_ceil_to_int(fix32_from_int(-2)));
 
+    TEST_EXPECT_EQ(1, fix32_trunc_to_int(positive));
+    TEST_EXPECT_EQ(-1, fix32_trunc_to_int(negative));
     TEST_EXPECT_EQ(2, fix32_round_to_int(positive_half));
     TEST_EXPECT_EQ(-2, fix32_round_to_int(negative_half));
     TEST_EXPECT_EQ(1, fix32_round_to_int(below_positive_half));
@@ -57,4 +59,22 @@ void test_rounding(void)
     TEST_EXPECT_FLOAT_NEAR(-1.0f, fix32_ceil_to_float(negative), 0.0f);
     TEST_EXPECT_FLOAT_NEAR(2.0f, fix32_round_to_float(positive_half), 0.0f);
     TEST_EXPECT_FLOAT_NEAR(-2.0f, fix32_round_to_float(negative_half), 0.0f);
+
+    TEST_EXPECT_DOUBLE_NEAR(1.0, fix32_floor_to_double(positive), 0.0);
+    TEST_EXPECT_DOUBLE_NEAR(-2.0, fix32_floor_to_double(negative), 0.0);
+    TEST_EXPECT_DOUBLE_NEAR(2.0, fix32_ceil_to_double(positive), 0.0);
+    TEST_EXPECT_DOUBLE_NEAR(-1.0, fix32_ceil_to_double(negative), 0.0);
+    TEST_EXPECT_DOUBLE_NEAR(2.0, fix32_round_to_double(positive_half), 0.0);
+    TEST_EXPECT_DOUBLE_NEAR(-2.0, fix32_round_to_double(negative_half), 0.0);
+
+    TEST_EXPECT_EQ(fix32_from_int(1), fix32_floor(positive));
+    TEST_EXPECT_EQ(fix32_from_int(-2), fix32_floor(negative));
+    TEST_EXPECT_EQ(fix32_from_int(2), fix32_ceil(positive));
+    TEST_EXPECT_EQ(fix32_from_int(-1), fix32_ceil(negative));
+    TEST_EXPECT_EQ(fix32_from_int(2), fix32_round(positive_half));
+    TEST_EXPECT_EQ(fix32_from_int(-2), fix32_round(negative_half));
+
+    TEST_EXPECT_EQ(1, FIX32_ITRUNC(positive));
+    TEST_EXPECT_EQ(-2, FIX32_IFLOOR(negative));
+    TEST_EXPECT_EQ(2, FIX32_IROUND(positive_half));
 }
