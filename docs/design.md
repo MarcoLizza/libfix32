@@ -755,7 +755,4 @@ The benchmark favors:
 - comparing both microbenchmarks and graphics-style workloads
 - increasing workload complexity to reveal steady-state behavior
 
-Overall, the design treats fixed point as a practical engineering tradeoff:
-use the fast path when the platform and operand range are known, select the
-portable floor/ceil fallback when required, and keep all inputs inside the
-unchecked arithmetic domain.
+Overall, the design treats fixed point as a practical engineering tradeoff: use the fast path when the platform and operand range are known, select the portable floor/ceil fallback when required, and keep all inputs inside the unchecked arithmetic domain.
