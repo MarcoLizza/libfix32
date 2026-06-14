@@ -22,13 +22,13 @@
  * SOFTWARE.
  */
 
-#ifndef FPMATH_BENCH_COMMON_H
-#define FPMATH_BENCH_COMMON_H
+#ifndef FIX32_BENCH_COMMON_H
+#define FIX32_BENCH_COMMON_H
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "fpmath.h"
+#include "fix32.h"
 
 #define DEFAULT_SAMPLE_COUNT 16384u
 #define DEFAULT_REPEAT_COUNT 2000u

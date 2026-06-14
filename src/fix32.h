@@ -22,18 +22,18 @@
  * SOFTWARE.
  */
 
-#ifndef FPMATH_H
-#define FPMATH_H
+#ifndef FIX32_H
+#define FIX32_H
 
-#define FPMATH_H_INCLUDED
+#define FIX32_H_INCLUDED
 
-#define FPMATH_STRINGIFY(x)     #x
-#define FPMATH_XSTRINGIFY(x)    FPMATH_STRINGIFY(x)
+#define FIX32_STRINGIFY(x)     #x
+#define FIX32_XSTRINGIFY(x)    FIX32_STRINGIFY(x)
 
-#define FPMATH_VERSION_MAJOR    0
-#define FPMATH_VERSION_MINOR    1
-#define FPMATH_VERSION_REVISION 0
-#define FPMATH_VERSION_STRING   FPMATH_XSTRINGIFY(FPMATH_VERSION_MAJOR) "." FPMATH_XSTRINGIFY(FPMATH_VERSION_MINOR) "." FPMATH_XSTRINGIFY(FPMATH_VERSION_REVISION)
+#define FIX32_VERSION_MAJOR    0
+#define FIX32_VERSION_MINOR    1
+#define FIX32_VERSION_REVISION 0
+#define FIX32_VERSION_STRING   FIX32_XSTRINGIFY(FIX32_VERSION_MAJOR) "." FIX32_XSTRINGIFY(FIX32_VERSION_MINOR) "." FIX32_XSTRINGIFY(FIX32_VERSION_REVISION)
 
 #include <stdint.h>
 
@@ -53,11 +53,11 @@
 // Public API overview:
 //
 // Include-time macros and versioning:
-// - `FPMATH_H` / `FPMATH_H_INCLUDED`: internal include guards.
-// - `FPMATH_STRINGIFY(x)` / `FPMATH_XSTRINGIFY(x)`: stringification helpers
-//   used to build `FPMATH_VERSION_STRING`.
-// - `FPMATH_VERSION_MAJOR`, `FPMATH_VERSION_MINOR`, `FPMATH_VERSION_REVISION`,
-//   `FPMATH_VERSION_STRING`: library version identifiers.
+// - `FIX32_H` / `FIX32_H_INCLUDED`: internal include guards.
+// - `FIX32_STRINGIFY(x)` / `FIX32_XSTRINGIFY(x)`: stringification helpers
+//   used to build `FIX32_VERSION_STRING`.
+// - `FIX32_VERSION_MAJOR`, `FIX32_VERSION_MINOR`, `FIX32_VERSION_REVISION`,
+//   `FIX32_VERSION_STRING`: library version identifiers.
 //
 // Configuration macros defined before including this header:
 // - `FIX32_FRACTIONAL_BITS`: number of fractional bits in the fixed-point
@@ -453,4 +453,4 @@ static inline fix32_t fix32_round(fix32_t value)
 #define FIX32_IFLOOR(v) fix32_floor_to_int(v)
 #define FIX32_IROUND(v) fix32_round_to_int(v)
 
-#endif  /* FPMATH_H */
+#endif  /* FIX32_H */

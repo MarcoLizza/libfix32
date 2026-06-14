@@ -1,6 +1,6 @@
-# fpmath design recap
+# fix32 design recap
 
-This document summarizes the design choices and rationale behind the header-only fixed-point module in `fpmath.h` and the associated benchmark suite in `src/bench`.
+This document summarizes the design choices and rationale behind the header-only fixed-point module in `fix32.h` and the associated benchmark suite in `src/bench`.
 
 ## Goals
 
@@ -24,8 +24,8 @@ This document summarizes the design choices and rationale behind the header-only
   scale-derived constants used by the conversion and rounding helpers.
 - `fix32_from_raw()` and `fix32_to_raw()` are identity conversions for code that
   needs direct access to the stored representation.
-- `FPMATH_VERSION_MAJOR`, `FPMATH_VERSION_MINOR`,
-  `FPMATH_VERSION_REVISION`, and `FPMATH_VERSION_STRING` identify the current
+- `FIX32_VERSION_MAJOR`, `FIX32_VERSION_MINOR`,
+  `FIX32_VERSION_REVISION`, and `FIX32_VERSION_STRING` identify the current
   header version, `0.1.0`.
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.

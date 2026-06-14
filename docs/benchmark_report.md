@@ -1,4 +1,4 @@
-# fpmath benchmark report
+# fix32 benchmark report
 
 This report captures the current default benchmark suite, including all scalar
 API benchmarks and the DDA, sprite-scaler, and rotoscaler workloads. The
@@ -10,7 +10,7 @@ costs.
 
 The measurements were recorded on June 13, 2026 with:
 
-- fpmath 0.1.0
+- fix32 0.1.0
 - AMD Ryzen 7 8845HS
 - Ubuntu x86-64, Linux 6.17
 - GCC 13.3.0

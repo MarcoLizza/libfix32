@@ -1,4 +1,4 @@
-# fpmath benchmark details
+# fix32 benchmark details
 
 This document explains exactly what the benchmark suite measures, how the inputs are built, and what each reported row means.
 

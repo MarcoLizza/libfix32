@@ -1,6 +1,6 @@
 # Introduction
 
-`fpmath` is a small C99 [single header only](https://en.wikipedia.org/wiki/Header-only) [fixed-point](https://en.wikipedia.org/wiki/Fixed-point_arithmetic) math library.
+`fix32` is a small C99 [single header only](https://en.wikipedia.org/wiki/Header-only) [fixed-point](https://en.wikipedia.org/wiki/Fixed-point_arithmetic) math library.
 
 I started to write this library to support fixed-point math in my game engine (Tofu Engine). Other fixed-point libraries exist, and some of them are quite good, but... well, we all have our own preferences and priorities when it comes to design and implementation, and I wanted to write my own library that fits my specific needs and style.
 
@@ -8,7 +8,7 @@ That said, I didn't want to make it a one-off for my game engine, but generally 
 
 Internally, it uses a signed 32-bit `fix32_t` representation which is a good balance between range and precision in most scenarios. The library also includes a number of configuration options to allow users to customize the behavior and performance characteristics of the library to suit their specific needs.
 
-By no means a comprehensive fixed-point library (see [libfixmath](https://code.google.com/archive/p/libfixmath/) for that purpose), `fpmath` provides a basic set of operations and helpers that are commonly needed in game development and other performance-sensitive applications.
+By no means a comprehensive fixed-point library (see [libfixmath](https://code.google.com/archive/p/libfixmath/) for that purpose), `fix32` provides a basic set of operations and helpers that are commonly needed in game development and other performance-sensitive applications.
 
 It's designed to be portable and configurable, with a focus on performance and ease of use.
 
@@ -17,7 +17,7 @@ It's designed to be portable and configurable, with a focus on performance and e
 To use the library, drop the header in your project and simply include it in your C source files:
 
 ```c
-#include "fpmath.h"
+#include "fix32.h"
 
 // Your code here...
 ```

@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef FPMATH_TEST_H
-#define FPMATH_TEST_H
+#ifndef FIX32_TEST_H
+#define FIX32_TEST_H
 
 #include <stdint.h>
 
-#include "fpmath.h"
+#include "fix32.h"
 
 #define TEST_EXPECT_EQ(expected, actual) \
     test_expect_int64((int64_t)(expected), (int64_t)(actual), #actual, \
