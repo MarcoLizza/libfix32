@@ -79,6 +79,10 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         checked_alloc(sample_count, sizeof(*data->small_int_inputs));
     data->int_div_inputs =
         checked_alloc(sample_count, sizeof(*data->int_div_inputs));
+    data->rational_numerators =
+        checked_alloc(sample_count, sizeof(*data->rational_numerators));
+    data->rational_denominators =
+        checked_alloc(sample_count, sizeof(*data->rational_denominators));
     data->float_inputs = checked_alloc(sample_count, sizeof(*data->float_inputs));
     data->double_inputs =
         checked_alloc(sample_count, sizeof(*data->double_inputs));
@@ -95,7 +99,8 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         checked_alloc(sample_count, sizeof(*data->fixed_reciprocals));
 
     if (data->int_inputs == NULL || data->small_int_inputs == NULL ||
-        data->int_div_inputs == NULL || data->float_inputs == NULL ||
+        data->int_div_inputs == NULL || data->rational_numerators == NULL ||
+        data->rational_denominators == NULL || data->float_inputs == NULL ||
         data->double_inputs == NULL || data->sum_inputs == NULL ||
         data->div_inputs == NULL || data->float_reciprocals == NULL ||
         data->fixed_inputs == NULL || data->sum_fixed_inputs == NULL ||
@@ -111,6 +116,14 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
             (int32_t)(lcg_next(&state) % 16u) + 1;
         if ((lcg_next(&state) & 1u) != 0u) {
             data->int_div_inputs[index] = -data->int_div_inputs[index];
+        }
+        data->rational_numerators[index] =
+            (int32_t)(lcg_next(&state) % 4097u) - 2048;
+        data->rational_denominators[index] =
+            (int32_t)(lcg_next(&state) % 64u) + 1;
+        if ((lcg_next(&state) & 1u) != 0u) {
+            data->rational_denominators[index] =
+                -data->rational_denominators[index];
         }
         data->float_inputs[index] = random_float(&state, -256.0f, 256.0f);
         data->double_inputs[index] = (double)data->float_inputs[index];
@@ -135,6 +148,8 @@ void benchmark_data_destroy(benchmark_data_t *data)
     free(data->int_inputs);
     free(data->small_int_inputs);
     free(data->int_div_inputs);
+    free(data->rational_numerators);
+    free(data->rational_denominators);
     free(data->float_inputs);
     free(data->double_inputs);
     free(data->sum_inputs);

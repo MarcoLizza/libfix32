@@ -76,8 +76,9 @@
 //   auto-selection. With the default `FIX32_FRACTIONAL_BITS` of `16`, the
 //   integer part has 15 bits of precision. If the integer part has more than
 //   15 bits, `FIX32_USE_64_BIT` will be automatically selected.
-// - `FIX32_NO_ROUNDING`: switches the `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`,
-//   and `FIX32_TO_INT` helper macros to their truncating variants.
+// - `FIX32_NO_ROUNDING`: switches the `FIX32_FROM_FLOAT`,
+//   `FIX32_FROM_DOUBLE`, and `FIX32_TO_INT` helper macros to their truncating
+//   variants.
 //
 // Constants and type:
 // - `FIX32_ONE`: raw fixed-point scale factor.
@@ -96,6 +97,11 @@
 //   fixed-point conversion.
 // - `fix32_round_from_float()` / `fix32_round_from_double()`: half-away-from-
 //   zero float/double to fixed-point conversion.
+// - `fix32_from_rational()`: converts an integer numerator and denominator
+//   directly to fixed point with truncation toward zero. This is mainly a
+//   semantic helper for deterministic integer-ratio conversion, as it avoids an
+//   intermediate floating-point value. The denominator must be nonzero and the
+//   scaled intermediate must fit the selected arithmetic path.
 // - `fix32_add()` / `fix32_sub()`: fixed-point addition and subtraction.
 // - `fix32_mul_by_int()`: fixed-point multiplied by an integer.
 // - `fix32_mul()`: fixed-point multiplication with selectable scaling path.
@@ -119,15 +125,15 @@
 //
 // Helper macros:
 // - `FIX32_FROM_INT()`: calls `fix32_from_int()`.
-// - `FIX32_FROM_FLOAT()`: calls `fix32_round_from_float()` by default, or
-//   `fix32_from_float()` when `FIX32_NO_ROUNDING` is defined.
-// - `FIX32_FROM_DOUBLE()`: calls `fix32_round_from_double()` by default, or
-//   `fix32_from_double()` when `FIX32_NO_ROUNDING` is defined.
+// - `FIX32_FROM_RATIONAL()`: calls `fix32_from_rational()`.
+// - `FIX32_FROM_FLOAT()` / `FIX32_FROM_DOUBLE()`: call the rounded conversion
+//   functions by default, or the truncating functions when `FIX32_NO_ROUNDING`
+//   is defined.
 // - `FIX32_TO_INT()`: calls `fix32_round_to_int()` by default, or
 //   `fix32_trunc_to_int()` when `FIX32_NO_ROUNDING` is defined.
-// - `FIX32_TO_FLOAT()`, `FIX32_TO_DOUBLE()`: exact value conversion helpers.
-// - `FIX32_ITRUNC()`, `FIX32_IFLOOR()`, `FIX32_IROUND()`: explicit integer
-//   rounding helpers.
+// - `FIX32_TO_FLOAT()` / `FIX32_TO_DOUBLE()`: exact value conversion helpers.
+// - `FIX32_ITRUNC()` / `FIX32_IFLOOR()` / `FIX32_IROUND()`: explicit integer
+//   conversion helpers.
 
 #if !defined(FIX32_FRACTIONAL_BITS)
     #define FIX32_FRACTIONAL_BITS 16
@@ -238,6 +244,16 @@ static inline fix32_t fix32_round_from_double(double value)
 {
     const double scaled = value * (double)FIX32_ONE;
     return (fix32_t)(scaled + ((scaled >= 0.0) ? 0.5 : -0.5));
+}
+
+static inline fix32_t fix32_from_rational(int32_t numerator, int32_t denominator)
+{
+#if FIX32_USE_64_BIT
+    return (fix32_t)(((int64_t)numerator * (int64_t)FIX32_ONE) /
+                     (int64_t)denominator);
+#else   /* FIX32_USE_64_BIT */
+    return (fix32_t)((numerator * FIX32_ONE) / denominator);
+#endif  /* FIX32_USE_64_BIT */
 }
 
 static inline fix32_t fix32_add(fix32_t left, fix32_t right)
@@ -436,6 +452,8 @@ static inline fix32_t fix32_round(fix32_t value)
 // to switch between rounding and non-rounding versions of the functions by
 // defining the `FIX32_NO_ROUNDING` macro.
 #define FIX32_FROM_INT(v) fix32_from_int(v)
+#define FIX32_FROM_RATIONAL(n, d) fix32_from_rational((n), (d))
+
 #if !defined(FIX32_NO_ROUNDING)
     #define FIX32_FROM_FLOAT(v) fix32_round_from_float(v)
     #define FIX32_FROM_DOUBLE(v) fix32_round_from_double(v)

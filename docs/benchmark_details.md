@@ -1,8 +1,8 @@
-# fix32 benchmark details
+# Benchmarks
 
 This document explains exactly what the benchmark suite measures, how the inputs are built, and what each reported row means.
 
-## Goal of the benchmark
+## Goal
 
 The benchmark is meant to compare:
 
@@ -14,7 +14,7 @@ for two kinds of work:
 1. scalar arithmetic and conversion primitives
 2. graphics-style workloads built mostly from those primitives
 
-The benchmark is intentionally arithmetic-focused. The DDA, sprite, and rotoscaler tests do **not** draw to memory; they only execute the math and feed the results into checksum sinks so the compiler cannot remove the work.
+The benchmark is intentionally arithmetic-focused. The DDA, sprite scaler, and sprite roto-scaler tests do **not** draw to memory; they only execute the math and feed the results into checksum sinks so the compiler cannot remove the work.
 
 ## How to run it
 
@@ -52,7 +52,7 @@ There are four timing helpers:
 - `run_benchmark()` for scalar rows
 - `run_line_benchmark()` for the DDA line cases
 - `run_sprite_benchmark()` for the sprite scaler cases
-- `run_rotoscale_benchmark()` for the rotoscaler cases; the benchmark prints
+- `run_rotoscale_benchmark()` for the sprite roto-scaler cases; the benchmark prints
   both incremental and direct inverse-mapping tables from the same helper
 
 The output is normalized like this:
@@ -60,7 +60,7 @@ The output is normalized like this:
 - scalar section: **ns/op**
 - DDA line section: **ns/pixel**
 - sprite scaler section: **ns/pixel**
-- rotoscaler section: **ns/pixel**
+- sprite roto-scaler section: **ns/pixel**
 
 Each table also prints a `fixed/float` ratio:
 
@@ -116,6 +116,8 @@ This keeps runs deterministic for the same build and parameters.
 | `int_inputs` | `int32_t[]` | integers in `[-30000, 30000]` |
 | `small_int_inputs` | `int32_t[]` | integer multipliers in `[-8, 8]` |
 | `int_div_inputs` | `int32_t[]` | nonzero integer divisors in `[-16, -1] U [1, 16]` |
+| `rational_numerators` | `int32_t[]` | rational numerators in `[-2048, 2048]` |
+| `rational_denominators` | `int32_t[]` | nonzero rational denominators in `[-64, -1] U [1, 64]` |
 | `float_inputs` | `float[]` | floats in `[-256.0, 256.0]` |
 | `double_inputs` | `double[]` | double versions of `float_inputs` |
 | `sum_inputs` | `float[]` | floats in `[-0.5, 0.5]` |
@@ -126,7 +128,9 @@ This keeps runs deterministic for the same build and parameters.
 | `fixed_div_inputs` | `fix32_t[]` | `fix32_round_from_float(div_inputs[i])` |
 | `fixed_reciprocals` | `fix32_t[]` | `fix32_reciprocal(fixed_div_inputs[i])` |
 
-`div_inputs` deliberately avoids zero so the division and reciprocal rows do not benchmark divide-by-zero handling.
+`int_div_inputs`, `rational_denominators`, and `div_inputs` deliberately avoid
+zero so the division, rational conversion, and reciprocal rows do not benchmark
+divide-by-zero handling.
 
 ## Scalar benchmark section
 
@@ -147,6 +151,7 @@ sample_count * repeat_count
 | Row label | Fixed-point path | Baseline path | Notes |
 | --- | --- | --- | --- |
 | `int -> representation` | `fix32_from_int(int_inputs[i])` | `(float)int_inputs[i]` | Integer conversion |
+| `rational -> fixed` | `fix32_from_rational(rational_numerators[i], rational_denominators[i])` | `fix32_from_float((float)rational_numerators[i] / (float)rational_denominators[i])` | Integer ratio conversion |
 | `float -> fixed trunc` | `fix32_from_float(float_inputs[i])` | `float_inputs[i]` | Truncating float conversion |
 | `float -> fixed round` | `fix32_round_from_float(float_inputs[i])` | `float_inputs[i]` | Rounded float conversion |
 | `double -> fixed trunc` | `fix32_from_double(double_inputs[i])` | `double_inputs[i]` | Truncating double conversion |

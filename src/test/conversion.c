@@ -68,6 +68,16 @@ void test_conversions(void)
     TEST_EXPECT_EQ(2, fix32_round_from_double(positive_double));
     TEST_EXPECT_EQ(-2, fix32_round_from_double(negative_double));
 
+    TEST_EXPECT_EQ(0, fix32_from_rational(0, 7));
+    TEST_EXPECT_EQ(FIX32_ONE / 2, fix32_from_rational(1, 2));
+    TEST_EXPECT_EQ(-(FIX32_ONE / 2), fix32_from_rational(-1, 2));
+    TEST_EXPECT_EQ(-(FIX32_ONE / 2), fix32_from_rational(1, -2));
+    TEST_EXPECT_EQ(FIX32_ONE / 2, fix32_from_rational(-1, -2));
+    TEST_EXPECT_EQ((7 * FIX32_ONE) / 3, fix32_from_rational(7, 3));
+    TEST_EXPECT_EQ((-7 * FIX32_ONE) / 3, fix32_from_rational(-7, 3));
+    TEST_EXPECT_EQ((355 * FIX32_ONE) / 113,
+                   fix32_from_rational(355, 113));
+
     TEST_EXPECT_FLOAT_NEAR(0.0f, fix32_to_float(0), 0.0f);
     TEST_EXPECT_FLOAT_NEAR(0.25f,
                            fix32_to_float(fix32_from_raw(FIX32_ONE / 4)),
@@ -86,6 +96,7 @@ void test_conversions(void)
 
     TEST_EXPECT_EQ(fix32_from_int(2), FIX32_FROM_INT(2));
     TEST_EXPECT_EQ(fix32_from_int(-2), FIX32_FROM_INT(-2));
+    TEST_EXPECT_EQ(fix32_from_rational(7, 3), FIX32_FROM_RATIONAL(7, 3));
 #if !defined(FIX32_NO_ROUNDING)
     TEST_EXPECT_EQ(2, FIX32_FROM_FLOAT(positive_float));
     TEST_EXPECT_EQ(2, FIX32_FROM_DOUBLE(positive_double));

@@ -109,6 +109,45 @@ static void bench_float_from_int(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
+static void bench_fixed_from_rational(const benchmark_data_t *data)
+{
+    int64_t checksum = 0;
+    volatile const int32_t *numerators = data->rational_numerators;
+    volatile const int32_t *denominators = data->rational_denominators;
+    size_t repeat;
+    size_t index;
+
+    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+        for (index = 0; index < data->sample_count; ++index) {
+            const fix32_t value =
+                fix32_from_rational(numerators[index], denominators[index]);
+            checksum += value;
+        }
+    }
+
+    g_int_sink = checksum;
+}
+
+static void bench_float_from_rational(const benchmark_data_t *data)
+{
+    int64_t checksum = 0;
+    volatile const int32_t *numerators = data->rational_numerators;
+    volatile const int32_t *denominators = data->rational_denominators;
+    size_t repeat;
+    size_t index;
+
+    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+        for (index = 0; index < data->sample_count; ++index) {
+            const fix32_t value =
+                fix32_from_float((float)numerators[index] /
+                                 (float)denominators[index]);
+            checksum += value;
+        }
+    }
+
+    g_int_sink = checksum;
+}
+
 static void bench_fixed_from_float(const benchmark_data_t *data)
 {
     int64_t checksum = 0;
@@ -1004,6 +1043,8 @@ void benchmark_print_scalar_results(const benchmark_data_t *data)
 {
     static const benchmark_pair_t pairs[] = {
         { "int -> representation", bench_fixed_from_int, bench_float_from_int },
+        { "rational -> fixed", bench_fixed_from_rational,
+          bench_float_from_rational },
         { "float -> fixed trunc", bench_fixed_from_float,
           bench_float_from_float },
         { "float -> fixed round", bench_fixed_round_from_float,

@@ -75,15 +75,29 @@ Rationale:
 - Callers can choose truncation or symmetric half-away-from-zero rounding
   directly.
 
+### Rational -> fixed
+
+`fix32_from_rational()` converts an integer numerator and denominator directly
+to fixed-point:
+
+```c
+(numerator * FIX32_ONE) / denominator
+```
+
+The conversion truncates toward zero because it uses integer division. It is
+useful when a scale, ratio, or reciprocal is already available as integer data
+and the caller wants to avoid a temporary floating-point value.
+
 ### Conversion helper macros
 
-By default, `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`, and `FIX32_TO_INT` select
-the rounding functions. Defining `FIX32_NO_ROUNDING` switches those macros to
-the truncating functions.
+`FIX32_FROM_INT` and `FIX32_FROM_RATIONAL` are direct aliases for the integer
+and rational constructors. `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`, and
+`FIX32_TO_INT` use the rounded conversion policy by default. Defining
+`FIX32_NO_ROUNDING` switches those three macros to truncating conversion.
 
-`FIX32_FROM_INT`, `FIX32_TO_FLOAT`, and `FIX32_TO_DOUBLE` are direct aliases.
-`FIX32_ITRUNC`, `FIX32_IFLOOR`, and `FIX32_IROUND` expose the three named
-integer conversion policies independently of `FIX32_NO_ROUNDING`.
+`FIX32_TO_FLOAT`, `FIX32_TO_DOUBLE`, `FIX32_ITRUNC`, `FIX32_IFLOOR`, and
+`FIX32_IROUND` expose the exact value and explicit integer conversion policies
+independently of `FIX32_NO_ROUNDING`.
 
 ### `fixed -> int`
 

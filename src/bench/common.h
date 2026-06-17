@@ -39,6 +39,8 @@ typedef struct benchmark_data {
     int32_t *int_inputs;
     int32_t *small_int_inputs;
     int32_t *int_div_inputs;
+    int32_t *rational_numerators;
+    int32_t *rational_denominators;
     float *float_inputs;
     double *double_inputs;
     float *sum_inputs;
