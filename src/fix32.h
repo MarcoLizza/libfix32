@@ -280,7 +280,7 @@ static inline fix32_t fix32_mul(fix32_t left, fix32_t right)
 #if FIX32_USE_64_BIT
     int64_t product = (int64_t)left * (int64_t)right;
 #else   /* FIX32_USE_64_BIT */
-    int32_t product = (int64_t)left * (int64_t)right;
+    int32_t product = left * right;
 #endif  /* FIX32_USE_64_BIT */
 #if FIX32_USE_SIGNED_SHIFT_MUL
     return (fix32_t)(product >> FIX32_FRACTIONAL_BITS);
@@ -306,7 +306,7 @@ static inline fix32_t fix32_div(fix32_t numerator, fix32_t denominator)
     //
     //   N / D = (n * S) / (d * S) = n / d (precision loss due to cancellation of S)
     //
-    //   (N * S) / D = (n * S * S) / (d * S) = n * S / d (correct scaling, no precision loss)
+    //   (N * S) / D = (n * S * S) / (d * S) = n * S / d = (n / d) * S (correct scaling, no precision loss)
     //
 #if FIX32_USE_SIGNED_SHIFT_DIV
     const int64_t scaled_numerator = (int64_t)numerator << FIX32_FRACTIONAL_BITS;
