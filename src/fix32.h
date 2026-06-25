@@ -443,8 +443,13 @@ static inline fix32_t fix32_ceil(fix32_t value)
 
 static inline fix32_t fix32_round(fix32_t value)
 {
-    const int aux = fix32_round_to_int(value); // Convert and rescale, to avoid flooring issues with negative numbers.
-    return fix32_from_int(aux);
+#if FIX32_USE_64_BIT
+    int64_t biased = (int64_t)value;
+#else   /* FIX32_USE_64_BIT */
+    int32_t biased = value;
+#endif  /* FIX32_USE_64_BIT */
+    biased += (value >= 0) ? FIX32_HALF : (FIX32_HALF - INT32_C(1));
+    return (fix32_t)(biased & FIX32_INTEGER_MASK);
 }
 
 // Helper macros. The user can still call the functions directly if they want
