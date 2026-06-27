@@ -10,7 +10,7 @@ costs.
 
 The measurements were recorded on June 27, 2026 with:
 
-- fix32 0.2.0
+- fix32 0.3.0
 - AMD Ryzen 7 8845HS
 - Ubuntu x86-64, Linux 6.17.0-35-generic
 - GCC 13.3.0

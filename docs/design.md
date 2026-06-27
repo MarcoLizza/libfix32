@@ -26,7 +26,7 @@ This document summarizes the design choices and rationale behind the single-head
   needs direct access to the stored representation.
 - `FIX32_VERSION_MAJOR`, `FIX32_VERSION_MINOR`,
   `FIX32_VERSION_REVISION`, and `FIX32_VERSION_STRING` identify the current
-  header version, `0.2.0`.
+  header version, `0.3.0`.
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.
 
