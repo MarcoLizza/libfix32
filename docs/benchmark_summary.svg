@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
+  <title id="title">fix32 benchmark fixed/base ratio summary</title>
+  <desc id="desc">Horizontal bar chart showing representative fixed/base ratios from the benchmark report. Lower ratios favor the fixed-point path; 1.0 is parity.</desc>
+  <style>
+    .title { font: 700 26px Arial, Helvetica, sans-serif; fill: #172033; }
+    .subtitle { font: 15px Arial, Helvetica, sans-serif; fill: #566273; }
+    .axis { stroke: #d8dee8; stroke-width: 1; }
+    .parity { stroke: #172033; stroke-width: 2; stroke-dasharray: 5 5; }
+    .label { font: 14px Arial, Helvetica, sans-serif; fill: #233044; }
+    .group { font: 700 15px Arial, Helvetica, sans-serif; fill: #172033; }
+    .tick { font: 12px Arial, Helvetica, sans-serif; fill: #697587; }
+    .value { font: 700 13px Arial, Helvetica, sans-serif; fill: #172033; }
+    .note { font: 13px Arial, Helvetica, sans-serif; fill: #566273; }
+    .faster { fill: #2f8f83; }
+    .slower { fill: #c86b38; }
+    .neutral { fill: #6b7280; }
+  </style>
+
+  <rect width="1000" height="700" fill="#ffffff"/>
+
+  <text x="40" y="42" class="title">Benchmark ratio summary</text>
+  <text x="40" y="68" class="subtitle">Fixed-point time divided by float/base time. Lower is better for the fixed-point path; 1.0 is parity.</text>
+
+  <rect x="40" y="84" width="14" height="14" rx="2" class="faster"/>
+  <text x="62" y="96" class="note">fixed faster</text>
+  <rect x="170" y="84" width="14" height="14" rx="2" class="neutral"/>
+  <text x="192" y="96" class="note">near parity</text>
+  <rect x="296" y="84" width="14" height="14" rx="2" class="slower"/>
+  <text x="318" y="96" class="note">fixed slower</text>
+
+  <line x1="280" y1="120" x2="280" y2="612" class="axis"/>
+  <line x1="399" y1="120" x2="399" y2="612" class="axis"/>
+  <line x1="518" y1="120" x2="518" y2="612" class="parity"/>
+  <line x1="638" y1="120" x2="638" y2="612" class="axis"/>
+  <line x1="757" y1="120" x2="757" y2="612" class="axis"/>
+  <line x1="876" y1="120" x2="876" y2="612" class="axis"/>
+
+  <text x="276" y="112" text-anchor="middle" class="tick">0</text>
+  <text x="399" y="112" text-anchor="middle" class="tick">0.5</text>
+  <text x="518" y="112" text-anchor="middle" class="tick">1.0 parity</text>
+  <text x="638" y="112" text-anchor="middle" class="tick">1.5</text>
+  <text x="757" y="112" text-anchor="middle" class="tick">2.0</text>
+  <text x="876" y="112" text-anchor="middle" class="tick">2.5</text>
+
+  <text x="40" y="136" class="group">Workloads, mean ratio</text>
+
+  <text x="260" y="164" text-anchor="end" class="label">sprite scaler</text>
+  <rect x="280" y="149" width="43" height="20" rx="4" class="faster"/>
+  <text x="333" y="164" class="value">0.18</text>
+
+  <text x="260" y="197" text-anchor="end" class="label">rotoscaler incremental</text>
+  <rect x="280" y="182" width="138" height="20" rx="4" class="faster"/>
+  <text x="428" y="197" class="value">0.58</text>
+
+  <text x="260" y="230" text-anchor="end" class="label">DDA line</text>
+  <rect x="280" y="215" width="165" height="20" rx="4" class="faster"/>
+  <text x="455" y="230" class="value">0.69</text>
+
+  <text x="260" y="263" text-anchor="end" class="label">rotoscaler direct</text>
+  <rect x="280" y="248" width="238" height="20" rx="4" class="neutral"/>
+  <text x="528" y="263" class="value">1.00</text>
+
+  <text x="40" y="312" class="group">Scalar rows, representative operations</text>
+
+  <text x="260" y="340" text-anchor="end" class="label">sum</text>
+  <rect x="280" y="325" width="81" height="20" rx="4" class="faster"/>
+  <text x="371" y="340" class="value">0.34</text>
+
+  <text x="260" y="373" text-anchor="end" class="label">floor -&gt; fixed</text>
+  <rect x="280" y="358" width="98" height="20" rx="4" class="faster"/>
+  <text x="388" y="373" class="value">0.41</text>
+
+  <text x="260" y="406" text-anchor="end" class="label">multiply by int</text>
+  <rect x="280" y="391" width="186" height="20" rx="4" class="faster"/>
+  <text x="476" y="406" class="value">0.78</text>
+
+  <text x="260" y="439" text-anchor="end" class="label">value -&gt; float</text>
+  <rect x="280" y="424" width="236" height="20" rx="4" class="neutral"/>
+  <text x="526" y="439" class="value">0.99</text>
+
+  <text x="260" y="472" text-anchor="end" class="label">multiply</text>
+  <rect x="280" y="457" width="291" height="20" rx="4" class="slower"/>
+  <text x="581" y="472" class="value">1.22</text>
+
+  <text x="260" y="505" text-anchor="end" class="label">float -&gt; fixed round</text>
+  <rect x="280" y="490" width="339" height="20" rx="4" class="slower"/>
+  <text x="629" y="505" class="value">1.42</text>
+
+  <text x="260" y="538" text-anchor="end" class="label">reciprocal -&gt; fixed</text>
+  <rect x="280" y="523" width="404" height="20" rx="4" class="slower"/>
+  <text x="694" y="538" class="value">1.69</text>
+
+  <text x="260" y="571" text-anchor="end" class="label">divide</text>
+  <rect x="280" y="556" width="505" height="20" rx="4" class="slower"/>
+  <text x="795" y="571" class="value">2.12</text>
+
+  <text x="260" y="604" text-anchor="end" class="label">rational -&gt; fixed</text>
+  <rect x="280" y="589" width="599" height="20" rx="4" class="slower"/>
+  <text x="889" y="604" class="value">2.51</text>
+
+  <line x1="280" y1="628" x2="900" y2="628" class="axis"/>
+  <text x="280" y="648" text-anchor="middle" class="tick">0</text>
+  <text x="518" y="648" text-anchor="middle" class="tick">1.0</text>
+  <text x="876" y="648" text-anchor="middle" class="tick">2.5</text>
+  <text x="40" y="674" class="note">Source: docs/benchmark_report.md, recorded June 18, 2026 on Ryzen 7 8845HS with GCC 13.3.0 and -O3.</text>
+</svg>
