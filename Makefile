@@ -56,6 +56,10 @@ TEST_HEADERS := \
 BENCHMARK := $(BUILD_DIR)/benchmark
 SHIFT_MUL_BENCHMARK := $(BUILD_DIR)/benchmark-shift-mul
 SHIFT_DIV_BENCHMARK := $(BUILD_DIR)/benchmark-shift-div
+BENCH_OUTPUT ?= $(BUILD_DIR)/benchmark-output.txt
+BENCH_GRAPH ?= docs/benchmark_summary.svg
+BENCH_GRAPH_SCRIPT := tools/benchmark_graph.py
+PYTHON ?= python3
 TEST_RUNNER := $(BUILD_DIR)/test
 PORTABLE_TEST_RUNNER := $(BUILD_DIR)/test-portable-floor
 NO_ROUNDING_TEST_RUNNER := $(BUILD_DIR)/test-no-rounding
@@ -76,8 +80,12 @@ benchmark-shift-mul: $(SHIFT_MUL_BENCHMARK)
 
 benchmark-shift-div: $(SHIFT_DIV_BENCHMARK)
 
-run-benchmark: $(BENCHMARK)
-	$(BENCHMARK) $(BENCH_ARGS)
+run-benchmark: $(BENCHMARK) $(BENCH_GRAPH_SCRIPT)
+	@mkdir -p $(BUILD_DIR)
+	$(BENCHMARK) $(BENCH_ARGS) > $(BENCH_OUTPUT)
+	@cat $(BENCH_OUTPUT)
+	$(PYTHON) $(BENCH_GRAPH_SCRIPT) $(BENCH_OUTPUT) -o $(BENCH_GRAPH) \
+		--source-label "$(BENCH_OUTPUT)"
 
 run-benchmark-shift-mul: $(SHIFT_MUL_BENCHMARK)
 	$(SHIFT_MUL_BENCHMARK) $(BENCH_ARGS)

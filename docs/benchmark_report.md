@@ -131,6 +131,52 @@ case                                  dest pixels fixed ns/pixel float ns/pixel 
 256x192 -> 1024x768 @ 60 deg               786432           0.93           0.89         1.04
 ```
 
+## Benchmark item reference
+
+Each scalar row compares a fixed-point operation with the corresponding
+floating-point or base representation loop shown by the `base ns/op` column.
+The ratio is `fixed ns/op / base ns/op`; values below `1.0` mean the fixed
+path was faster in that run, while values above `1.0` mean the base path was
+faster. The workload sections use the same ratio idea but report time per
+pixel instead of time per scalar operation.
+
+| Item | Meaning |
+| --- | --- |
+| `int -> representation` | Convert signed integer inputs to the native representation: `fix32_from_int()` for fixed point and a cast to `float` for the baseline. |
+| `rational -> fixed` | Convert integer numerator/denominator pairs to fixed point, compared with float division followed by truncating float-to-fixed conversion. |
+| `float -> fixed trunc` | Convert `float` inputs to fixed point with truncation toward zero, compared with reading and accumulating the float values. |
+| `float -> fixed round` | Convert `float` inputs to fixed point with nearest-value rounding, compared with the same float baseline loop. |
+| `double -> fixed trunc` | Convert `double` inputs to fixed point with truncation toward zero, compared with reading and accumulating the double values. |
+| `double -> fixed round` | Convert `double` inputs to fixed point with nearest-value rounding, compared with the same double baseline loop. |
+| `sum` | Repeatedly add small values into an accumulator using `fix32_add()` or float addition. |
+| `subtract` | Subtract one input stream from another using `fix32_sub()` or float subtraction. |
+| `multiply` | Multiply two fixed-point values with `fix32_mul()`, compared with float multiplication. |
+| `multiply by int` | Multiply a fixed-point value by a small integer with `fix32_mul_by_int()`, compared with multiplying a float by the same integer. |
+| `reciprocal by int` | Build a fixed-point reciprocal from an integer divisor, compared with float reciprocal computation converted back to fixed point. |
+| `reciprocal -> fixed` | Build a reciprocal from a fixed-point divisor with `fix32_reciprocal()`, compared with a float reciprocal converted back to fixed point. |
+| `divide by int` | Divide a fixed-point value by an integer with `fix32_div_by_int()`, compared with float division by the same integer. |
+| `divide` | Divide one fixed-point value by another with `fix32_div()`, compared with float division. |
+| `mul reciprocal` | Multiply by a precomputed reciprocal, compared with the same operation in float. |
+| `trunc -> int` | Convert to integer by truncating toward zero. |
+| `ceil -> int` | Convert to integer with ceiling semantics. |
+| `floor -> int` | Convert to integer with floor semantics. |
+| `round -> int` | Convert to integer with nearest-value rounding. |
+| `floor -> fixed` | Floor the fractional part while keeping the result in fixed-point representation, compared with the float helper returning a float-valued integer. |
+| `ceil -> fixed` | Ceil the fractional part while keeping the result in fixed-point representation, compared with the float helper returning a float-valued integer. |
+| `round -> fixed` | Round while keeping the result in fixed-point representation, compared with the float helper returning a float-valued integer. |
+| `value -> float` | Convert fixed-point values to `float`, compared with reading and accumulating existing float values. |
+| `ceil -> float` | Apply fixed-point ceiling and return `float`, compared with float ceiling logic returning `float`. |
+| `floor -> float` | Apply fixed-point floor and return `float`, compared with float floor logic returning `float`. |
+| `round -> float` | Apply fixed-point rounding and return `float`, compared with float rounding logic returning `float`. |
+| `value -> double` | Convert fixed-point values to `double`, compared with reading and accumulating existing double values. |
+| `ceil -> double` | Apply fixed-point ceiling and return `double`, compared with double ceiling logic returning `double`. |
+| `floor -> double` | Apply fixed-point floor and return `double`, compared with double floor logic returning `double`. |
+| `round -> double` | Apply fixed-point rounding and return `double`, compared with double rounding logic returning `double`. |
+| DDA `line length` rows | Run an arithmetic-only DDA line stepper for the requested major-axis length. The `pixels` column is the number of generated points. |
+| Sprite scaler `case` rows | Run nearest-neighbor-style source coordinate generation from the source dimensions to the destination dimensions shown in the label. |
+| Rotoscaler incremental `case` rows | Run affine inverse mapping by incrementally advancing source coordinates across each row and down each column. |
+| Rotoscaler direct `case` rows | Run affine inverse mapping by recomputing the source coordinate from destination `x` and `y` for every pixel. |
+
 ## Scalar results
 
 The strongest fixed-point scalar results are the operations built from integer

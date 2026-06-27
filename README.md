@@ -71,9 +71,13 @@ The test target runs the full suite, including the configuration variants for po
 ```sh
 make benchmark
 ./build/benchmark 8192 100
+make run-benchmark BENCH_ARGS="8192 100"
 ```
 
 The benchmark compares fixed-point and floating-point work for scalar math, line stepping, sprite scaling, and sprite roto-scaling. The reason for this kind of benchmark is to provide a realistic performance comparison between fixed-point and floating-point math in the context of game development, where these operations are commonly used (or, at least, they are in the context of my game engine :D).
+
+The `run-benchmark` target captures the benchmark output under `build/` and
+regenerates the summary graph used below.
 
 The current report is summarized below with fixed-point time divided by the
 float or base time. Lower ratios favor the fixed-point path, and `1.0` is
