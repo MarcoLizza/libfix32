@@ -8,11 +8,11 @@ costs.
 
 ## Run configuration
 
-The measurements were recorded on June 18, 2026 with:
+The measurements were recorded on June 27, 2026 with:
 
-- fix32 0.1.0
+- fix32 0.2.0
 - AMD Ryzen 7 8845HS
-- Ubuntu x86-64, Linux 6.17
+- Ubuntu x86-64, Linux 6.17.0-35-generic
 - GCC 13.3.0
 - C99
 - `-O3` as the effective optimization level
@@ -50,7 +50,8 @@ This is one benchmark invocation using the suite's `clock()`-based CPU-time
 measurement. Small differences should be expected between runs.
 
 The fixed and floating-point rounding helpers are both inline-visible to the
-compiler. After conversion to integer sample coordinates, the DDA, scaler, and
+compiler; the benchmark build enables `FIX32_STATIC_INLINE` for the fixed-point
+header. After conversion to integer sample coordinates, the DDA, scaler, and
 rotoscaler paths also use the same `int64_t` checksum operation.
 
 ## Raw output
@@ -59,76 +60,76 @@ rotoscaler paths also use the same `int64_t` checksum operation.
 scalar benchmarks
 samples=8192 repeats=100 operations-per-case=819200
 operation                   fixed ns/op     base ns/op   fixed/base
-int -> representation              0.42           0.62         0.69
-rational -> fixed                  1.89           0.75         2.51
-float -> fixed trunc               0.51           0.61         0.84
-float -> fixed round               0.86           0.61         1.42
-double -> fixed trunc              0.50           0.61         0.82
-double -> fixed round              0.87           0.62         1.41
-sum                                0.21           0.61         0.34
-subtract                           0.36           0.61         0.59
-multiply                           0.75           0.61         1.22
-multiply by int                    0.49           0.63         0.78
-reciprocal by int                  1.22           0.69         1.78
-reciprocal -> fixed                1.43           0.84         1.69
-divide by int                      1.30           0.62         2.10
-divide                             1.43           0.68         2.12
-mul reciprocal                     0.76           0.63         1.19
+int -> representation              0.41           0.63         0.65
+rational -> fixed                  1.43           0.75         1.90
+float -> fixed trunc               0.67           0.92         0.73
+float -> fixed round               0.97           0.61         1.58
+double -> fixed trunc              0.50           0.61         0.81
+double -> fixed round              0.91           0.61         1.50
+sum                                0.23           0.61         0.38
+subtract                           0.36           0.61         0.58
+multiply                           0.73           0.61         1.20
+multiply by int                    0.43           0.64         0.67
+reciprocal by int                  1.23           0.68         1.80
+reciprocal -> fixed                1.44           0.91         1.58
+divide by int                      1.30           0.63         2.06
+divide                             1.45           0.68         2.13
+mul reciprocal                     0.75           0.62         1.21
 trunc -> int                       0.41           0.49         0.84
-ceil -> int                        0.41           0.59         0.69
-floor -> int                       0.36           0.59         0.62
-round -> int                       0.66           0.85         0.77
+ceil -> int                        0.42           0.59         0.71
+floor -> int                       0.35           0.60         0.58
+round -> int                       0.70           0.85         0.83
 floor -> fixed                     0.42           1.02         0.41
-ceil -> fixed                      0.59           1.01         0.59
-round -> fixed                     0.84           1.34         0.63
-value -> float                     0.62           0.62         0.99
+ceil -> fixed                      0.60           1.03         0.59
+round -> fixed                     0.66           1.31         0.50
+value -> float                     0.63           0.62         1.02
 ceil -> float                      0.62           1.01         0.61
-floor -> float                     0.64           1.06         0.60
-round -> float                     0.65           1.33         0.49
-value -> double                    0.62           0.62         1.01
-ceil -> double                     0.62           0.87         0.71
-floor -> double                    0.64           0.88         0.73
-round -> double                    0.70           1.26         0.55
+floor -> float                     0.63           1.01         0.63
+round -> float                     0.70           1.27         0.55
+value -> double                    0.62           0.62         0.99
+ceil -> double                     0.62           0.88         0.70
+floor -> double                    0.63           0.93         0.68
+round -> double                    0.70           1.40         0.50
 
 DDA line benchmarks
 repeats-per-case=100
 line length        pixels fixed ns/pixel float ns/pixel  fixed/float
-32                     33           1.52           2.12         0.71
+32                     33           1.52           1.82         0.83
 128                   129           1.24           1.78         0.70
-512                   513           1.19           1.75         0.68
-2048                 2049           1.21           1.74         0.69
-8192                 8193           1.19           1.75         0.68
+512                   513           1.21           1.75         0.69
+2048                 2049           1.19           1.75         0.68
+8192                 8193           1.19           1.79         0.66
 
 sprite scaler benchmarks
 repeats-per-case=100
 case                              dest pixels fixed ns/pixel float ns/pixel  fixed/float
-16x16 -> 24x24 (1.5x)                     576           0.17           0.92         0.19
+16x16 -> 24x24 (1.5x)                     576           0.17           0.87         0.20
 32x24 -> 64x42 (2.0x/1.75x)              2688           0.15           0.84         0.17
-64x48 -> 160x96 (2.5x/2.0x)             15360           0.15           0.83         0.17
-96x64 -> 288x160 (3.0x/2.5x)            46080           0.15           0.83         0.18
+64x48 -> 160x96 (2.5x/2.0x)             15360           0.15           0.84         0.18
+96x64 -> 288x160 (3.0x/2.5x)            46080           0.14           0.83         0.17
 128x96 -> 512x384 (4.0x)               196608           0.14           0.83         0.17
 160x128 -> 1024x768 (6.4x)             786432           0.14           0.83         0.17
-256x192 -> 2048x1536 (8.0x)           3145728           0.15           0.84         0.18
-512x384 -> 4096x3072 (8.0x)          12582912           0.15           0.85         0.17
-1024x768 -> 8192x6144 (8.0x)         50331648           0.15           0.84         0.18
+256x192 -> 2048x1536 (8.0x)           3145728           0.14           0.83         0.17
+512x384 -> 4096x3072 (8.0x)          12582912           0.15           0.83         0.18
+1024x768 -> 8192x6144 (8.0x)         50331648           0.15           0.83         0.17
 
 rotoscaler benchmarks (incremental inverse mapping)
 repeats-per-case=100
 case                                  dest pixels fixed ns/pixel float ns/pixel  fixed/float
-32x32 -> 64x64 @ 15 deg                      4096           0.73           1.31         0.56
-64x48 -> 160x120 @ 30 deg                   19200           0.74           1.30         0.57
-96x64 -> 288x192 @ 45 deg                   55296           0.74           1.30         0.57
-128x96 -> 512x384 @ 22.5 deg               196608           0.86           1.32         0.65
-256x192 -> 1024x768 @ 60 deg               786432           0.75           1.37         0.54
+32x32 -> 64x64 @ 15 deg                      4096           0.75           1.34         0.56
+64x48 -> 160x120 @ 30 deg                   19200           0.76           1.42         0.53
+96x64 -> 288x192 @ 45 deg                   55296           0.76           1.33         0.57
+128x96 -> 512x384 @ 22.5 deg               196608           0.78           1.34         0.58
+256x192 -> 1024x768 @ 60 deg               786432           0.76           1.34         0.57
 
 rotoscaler benchmarks (direct inverse mapping)
 repeats-per-case=100
 case                                  dest pixels fixed ns/pixel float ns/pixel  fixed/float
-32x32 -> 64x64 @ 15 deg                      4096           0.90           0.94         0.97
+32x32 -> 64x64 @ 15 deg                      4096           0.91           0.92         0.98
 64x48 -> 160x120 @ 30 deg                   19200           0.90           0.92         0.98
-96x64 -> 288x192 @ 45 deg                   55296           0.90           0.91         0.99
-128x96 -> 512x384 @ 22.5 deg               196608           0.91           0.90         1.01
-256x192 -> 1024x768 @ 60 deg               786432           0.93           0.89         1.04
+96x64 -> 288x192 @ 45 deg                   55296           0.90           0.92         0.99
+128x96 -> 512x384 @ 22.5 deg               196608           0.92           0.91         1.01
+256x192 -> 1024x768 @ 60 deg               786432           0.92           0.90         1.02
 ```
 
 ## Benchmark item reference
@@ -181,35 +182,35 @@ pixel instead of time per scalar operation.
 
 The strongest fixed-point scalar results are the operations built from integer
 addition, masking, and integer-facing rounding. Repeated addition costs
-`0.21 ns/op` against `0.61 ns/op` for the float baseline. Fixed-valued floor,
-ceil, and round have ratios from `0.41` to `0.63`.
+`0.23 ns/op` against `0.61 ns/op` for the float baseline. Fixed-valued floor,
+ceil, and round have ratios from `0.41` to `0.59`.
 
 Truncating float and double construction is cheaper than the corresponding
-baseline loop in this run, with ratios of `0.84` and `0.82` for truncating
+baseline loop in this run, with ratios of `0.73` and `0.81` for truncating
 construction. Explicit rounded construction is slower than the baseline, with
-ratios of `1.42` for float and `1.41` for double. These
+ratios of `1.58` for float and `1.50` for double. These
 sub-nanosecond conversion rows are particularly sensitive to compiler
 optimization and should not be treated as standalone architectural evidence.
 
 The rational conversion row measures `fix32_from_rational()` against a float
 division of the same integer numerator and denominator followed by truncating
-float-to-fixed conversion. The integer rational path is `2.51` times the float
+float-to-fixed conversion. The integer rational path is `1.90` times the float
 baseline in this run because 64-bit scaled integer division is more expensive
 than this compiler's float division and conversion sequence. Its value is
 semantic rather than throughput: it avoids the intermediate float rounding step
 and directly computes the truncated fixed-point ratio.
 
-Fixed multiplication is `1.22` times the float cost under the default
+Fixed multiplication is `1.20` times the float cost under the default
 64-bit-product configuration. Multiplication by an integer is favorable at
-`0.78`, while fixed division and reciprocal operations are slower:
+`0.67`, while fixed division and reciprocal operations are slower:
 
 | Operation | Fixed/base |
 | --- | ---: |
-| `reciprocal by int` | `1.78` |
-| `reciprocal -> fixed` | `1.69` |
-| `divide by int` | `2.10` |
-| `divide` | `2.12` |
-| `mul reciprocal` | `1.19` |
+| `reciprocal by int` | `1.80` |
+| `reciprocal -> fixed` | `1.58` |
+| `divide by int` | `2.06` |
+| `divide` | `2.13` |
+| `mul reciprocal` | `1.21` |
 
 Direct conversion back to float or double is approximately neutral in this run.
 The floor, ceil, and round conversions to float or double favor the fixed path
@@ -219,14 +220,14 @@ because they reuse the integer rounding helpers.
 
 The measured fixed costs are:
 
-- reciprocal construction: `1.43 ns/op`
-- direct division: `1.43 ns/op`
-- multiplication by a precomputed reciprocal: `0.76 ns/op`
+- reciprocal construction: `1.44 ns/op`
+- direct division: `1.45 ns/op`
+- multiplication by a precomputed reciprocal: `0.75 ns/op`
 
 Using the measured values, reciprocal reuse wins when:
 
 ```text
-1.43 + 0.76 * N < 1.43 * N
+1.44 + 0.75 * N < 1.45 * N
 ```
 
 The break-even point is therefore three uses of the same reciprocal in this run.
@@ -236,8 +237,8 @@ workloads that reuse a divisor many times, but not for a one-off quotient.
 ## DDA line workload
 
 The DDA loop computes its step once, repeatedly adds it, and rounds each point
-to integer pixel coordinates. Ratios range from `0.68` to `0.71` for the larger
-cases, with more timing variation in the short cases. The result still favors
+to integer pixel coordinates. Ratios range from `0.66` to `0.70` for the larger
+cases, with more timing variation in the short case. The result still favors
 fixed-point stepping, but the margin is smaller and less uniform than in the
 scaler workloads.
 
@@ -246,7 +247,7 @@ scaler workloads.
 The sprite scaler precomputes source-coordinate steps, repeatedly accumulates
 them, and floors each source coordinate to an integer sample index.
 
-The fixed/float ratio is between `0.17` and `0.19`, or roughly a `5.3x` to `5.9x`
+The fixed/float ratio is between `0.17` and `0.20`, or roughly a `5.0x` to `5.9x`
 advantage for the arithmetic-only fixed path in this run. The benchmark does
 not access source or destination pixels, so this ratio must not be interpreted
 as an expected whole-renderer speedup. Memory traffic, clipping, format
@@ -293,12 +294,12 @@ measurements.
 The rotoscaler now reports two loop shapes.
 
 The incremental inverse-mapping path adds the affine step vectors across the
-row and down the column. Its fixed/float ratio is about `0.56` to `0.58`,
+row and down the column. Its fixed/float ratio is about `0.53` to `0.58`,
 which is still a clear arithmetic-only advantage for the fixed path.
 
 The direct inverse-mapping path recomputes the source coordinate from the
-destination `x` and `y` each pixel. Its fixed/float ratio is about `0.97` to
-`1.04`, which is roughly parity on this compiler and build. The extra
+destination `x` and `y` each pixel. Its fixed/float ratio is about `0.98` to
+`1.02`, which is roughly parity on this compiler and build. The extra
 per-pixel multiplications make this form more expensive than the incremental
 walker, and the fixed advantage is effectively gone once the direct float path
 is measured on the same terms.

@@ -6,7 +6,7 @@
 
 `fix32` is a small C99 [single header only](https://en.wikipedia.org/wiki/Header-only) [fixed-point](https://en.wikipedia.org/wiki/Fixed-point_arithmetic) math library.
 
-I started to write this library to support fixed-point math in my game engine (Tofu Engine). Other fixed-point libraries exist, and some of them are quite good, but... well, we all have our own preferences and priorities when it comes to design and implementation, and I wanted to write my own library that fits my specific needs and style.
+I started to write this library to support fixed-point math in my [game engine](https://tofuengine.org/). Other fixed-point libraries exist, and some of them are quite good, but... well, we all have our own preferences and priorities when it comes to design and implementation, and I wanted to write my own library that fits my specific needs and style.
 
 That said, I didn't want to make it a one-off for my game engine, but generally useful and reusable.
 
@@ -18,7 +18,7 @@ It's designed to be portable and configurable, with a focus on performance and e
 
 ## Usage
 
-To use the library, drop the header in your project and simply include it in your C source files:
+To use the library, drop the header in your project and include it from the C files that use fixed-point math:
 
 ```c
 #include "fix32.h"
@@ -26,12 +26,25 @@ To use the library, drop the header in your project and simply include it in you
 // Your code here...
 ```
 
-> The library functions are defined as `inline` so the compiler can see and optimize them at each call site. Include `fix32.h` in every translation unit that uses the library rather than hiding it behind a single shared implementation file.
+In exactly one translation unit, define `FIX32_IMPLEMENTATION` before including the header so the function bodies are emitted:
+
+```c
+#define FIX32_IMPLEMENTATION
+#include "fix32.h"
+```
+
+> If you want the previous fully inline behavior for hot code, define `FIX32_STATIC_INLINE` before including `fix32.h`. That emits `static inline` definitions in the current translation unit. `FIX32_INLINE` can also be defined first if a compiler-specific inline spelling is needed.
 
 As simple as that! The library is designed to be easy to integrate into existing projects without additional setup.
 
 A number of configuration macros are available to customize the behavior and performance characteristics of the library. These can be defined at compile time to enable or disable specific features or optimizations:
 
+- `FIX32_IMPLEMENTATION`: emits the external function definitions from one
+  translation unit
+- `FIX32_STATIC_INLINE`: emits `static inline` definitions in the including
+  translation unit instead of using external definitions
+- `FIX32_INLINE`: overrides the inline spelling used by `FIX32_STATIC_INLINE`,
+  default `static inline`
 - `FIX32_FRACTIONAL_BITS`: fractional precision, default `16`
 - `FIX32_USE_ARITHMETIC_SHIFT_FLOOR`: selects the fast floor/ceil path, default
   `1`
@@ -49,6 +62,7 @@ Typical overrides look like this:
 
 ```sh
 make CFLAGS="-O2 -DFIX32_NO_ROUNDING"
+make benchmark BENCH_CPPFLAGS="-DFIX32_STATIC_INLINE"
 make benchmark BENCH_CFLAGS="-O3 -DFIX32_USE_SIGNED_SHIFT_MUL=1"
 ```
 
@@ -82,13 +96,9 @@ make run-benchmark BENCH_ARGS="8192 100"
 
 The benchmark compares fixed-point and floating-point work for scalar math, line stepping, sprite scaling, and sprite roto-scaling. The reason for this kind of benchmark is to provide a realistic performance comparison between fixed-point and floating-point math in the context of game development, where these operations are commonly used (or, at least, they are in the context of my game engine :D).
 
-The `run-benchmark` target captures the benchmark output under `build/` and
-regenerates the summary graph used below.
+The `run-benchmark` target captures the benchmark output under `build/` and regenerates the summary graph used below.
 
-The current report is summarized below with fixed-point time divided by the
-float or base time. Lower ratios favor the fixed-point path, and `1.0` is
-parity. The workload rows are averages from the report; the scalar rows are
-representative operations from the same run.
+The current report is summarized below with fixed-point time divided by the float or base time. Lower ratios favor the fixed-point path, and `1.0` is parity. The workload rows are averages from the report; the scalar rows are representative operations from the same run.
 
 ![Benchmark ratio summary](docs/benchmark_summary.svg)
 
