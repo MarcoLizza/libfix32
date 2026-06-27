@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/fix32-logo.svg" alt="fix32 pixel-art logo" width="640">
+</p>
+
 # Introduction
 
 `fix32` is a small C99 [single header only](https://en.wikipedia.org/wiki/Header-only) [fixed-point](https://en.wikipedia.org/wiki/Fixed-point_arithmetic) math library.
@@ -21,6 +25,8 @@ To use the library, drop the header in your project and simply include it in you
 
 // Your code here...
 ```
+
+> The library functions are defined as `inline` so the compiler can see and optimize them at each call site. Include `fix32.h` in every translation unit that uses the library rather than hiding it behind a single shared implementation file.
 
 As simple as that! The library is designed to be easy to integrate into existing projects without additional setup.
 

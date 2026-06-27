@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="180" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">fix32 pixel-art logo</title>
+  <desc id="desc">A pixel-art fix32 wordmark with a 32-bit fixed-point register split into 16 integer bits and 16 fractional bits.</desc>
+  <style>
+    .panel { fill: #111827; }
+    .panel-edge { fill: #263449; }
+    .pixel-main { fill: #67e8f9; }
+    .pixel-accent { fill: #fbbf24; }
+    .pixel-soft { fill: #34d399; }
+    .bit-a { fill: #38bdf8; }
+    .bit-b { fill: #0ea5e9; }
+    .bit-c { fill: #34d399; }
+    .bit-d { fill: #10b981; }
+    .split { fill: #f59e0b; }
+    .label { font: 700 14px "Courier New", monospace; fill: #d1d5db; letter-spacing: 0; }
+    .small { font: 700 11px "Courier New", monospace; fill: #94a3b8; letter-spacing: 0; }
+  </style>
+
+  <rect x="16" y="16" width="688" height="148" class="panel"/>
+  <rect x="16" y="16" width="688" height="8" class="panel-edge"/>
+  <rect x="16" y="156" width="688" height="8" class="panel-edge"/>
+  <rect x="16" y="16" width="8" height="148" class="panel-edge"/>
+  <rect x="696" y="16" width="8" height="148" class="panel-edge"/>
+
+  <g transform="translate(56 38)">
+    <g class="pixel-main">
+      <rect x="0" y="0" width="10" height="10"/>
+      <rect x="12" y="0" width="10" height="10"/>
+      <rect x="24" y="0" width="10" height="10"/>
+      <rect x="36" y="0" width="10" height="10"/>
+      <rect x="48" y="0" width="10" height="10"/>
+      <rect x="0" y="12" width="10" height="10"/>
+      <rect x="0" y="24" width="10" height="10"/>
+      <rect x="0" y="36" width="10" height="10"/>
+      <rect x="12" y="36" width="10" height="10"/>
+      <rect x="24" y="36" width="10" height="10"/>
+      <rect x="36" y="36" width="10" height="10"/>
+      <rect x="0" y="48" width="10" height="10"/>
+      <rect x="0" y="60" width="10" height="10"/>
+      <rect x="0" y="72" width="10" height="10"/>
+
+      <rect x="72" y="0" width="10" height="10"/>
+      <rect x="84" y="0" width="10" height="10"/>
+      <rect x="96" y="0" width="10" height="10"/>
+      <rect x="84" y="12" width="10" height="10"/>
+      <rect x="84" y="24" width="10" height="10"/>
+      <rect x="84" y="36" width="10" height="10"/>
+      <rect x="84" y="48" width="10" height="10"/>
+      <rect x="84" y="60" width="10" height="10"/>
+      <rect x="72" y="72" width="10" height="10"/>
+      <rect x="84" y="72" width="10" height="10"/>
+      <rect x="96" y="72" width="10" height="10"/>
+
+      <rect x="120" y="0" width="10" height="10"/>
+      <rect x="168" y="0" width="10" height="10"/>
+      <rect x="132" y="12" width="10" height="10"/>
+      <rect x="156" y="12" width="10" height="10"/>
+      <rect x="144" y="24" width="10" height="10"/>
+      <rect x="144" y="36" width="10" height="10"/>
+      <rect x="144" y="48" width="10" height="10"/>
+      <rect x="132" y="60" width="10" height="10"/>
+      <rect x="156" y="60" width="10" height="10"/>
+      <rect x="120" y="72" width="10" height="10"/>
+      <rect x="168" y="72" width="10" height="10"/>
+    </g>
+
+    <g class="pixel-accent">
+      <rect x="192" y="0" width="10" height="10"/>
+      <rect x="204" y="0" width="10" height="10"/>
+      <rect x="216" y="0" width="10" height="10"/>
+      <rect x="228" y="0" width="10" height="10"/>
+      <rect x="240" y="12" width="10" height="10"/>
+      <rect x="240" y="24" width="10" height="10"/>
+      <rect x="204" y="36" width="10" height="10"/>
+      <rect x="216" y="36" width="10" height="10"/>
+      <rect x="228" y="36" width="10" height="10"/>
+      <rect x="240" y="48" width="10" height="10"/>
+      <rect x="240" y="60" width="10" height="10"/>
+      <rect x="192" y="72" width="10" height="10"/>
+      <rect x="204" y="72" width="10" height="10"/>
+      <rect x="216" y="72" width="10" height="10"/>
+      <rect x="228" y="72" width="10" height="10"/>
+
+      <rect x="264" y="0" width="10" height="10"/>
+      <rect x="276" y="0" width="10" height="10"/>
+      <rect x="288" y="0" width="10" height="10"/>
+      <rect x="300" y="0" width="10" height="10"/>
+      <rect x="312" y="12" width="10" height="10"/>
+      <rect x="312" y="24" width="10" height="10"/>
+      <rect x="264" y="36" width="10" height="10"/>
+      <rect x="276" y="36" width="10" height="10"/>
+      <rect x="288" y="36" width="10" height="10"/>
+      <rect x="300" y="36" width="10" height="10"/>
+      <rect x="264" y="48" width="10" height="10"/>
+      <rect x="264" y="60" width="10" height="10"/>
+      <rect x="264" y="72" width="10" height="10"/>
+      <rect x="276" y="72" width="10" height="10"/>
+      <rect x="288" y="72" width="10" height="10"/>
+      <rect x="300" y="72" width="10" height="10"/>
+      <rect x="312" y="72" width="10" height="10"/>
+    </g>
+  </g>
+
+  <g transform="translate(432 45)">
+    <rect x="0" y="0" width="112" height="12" class="pixel-main"/>
+    <rect x="120" y="0" width="112" height="12" class="pixel-soft"/>
+    <rect x="112" y="-6" width="8" height="24" class="split"/>
+    <text x="0" y="38" class="label">Q16.16 fixed</text>
+    <text x="0" y="56" class="small">integer bits</text>
+    <text x="120" y="56" class="small">fraction bits</text>
+  </g>
+
+  <g transform="translate(58 128)">
+    <rect x="0" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="14" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="28" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="42" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="56" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="70" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="84" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="98" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="112" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="126" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="140" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="154" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="168" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="182" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="196" y="0" width="10" height="10" class="bit-a"/>
+    <rect x="210" y="0" width="10" height="10" class="bit-b"/>
+    <rect x="224" y="-4" width="6" height="18" class="split"/>
+    <rect x="238" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="252" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="266" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="280" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="294" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="308" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="322" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="336" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="350" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="364" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="378" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="392" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="406" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="420" y="0" width="10" height="10" class="bit-d"/>
+    <rect x="434" y="0" width="10" height="10" class="bit-c"/>
+    <rect x="448" y="0" width="10" height="10" class="bit-d"/>
+    <text x="472" y="10" class="small">32-bit raw value</text>
+  </g>
+</svg>
