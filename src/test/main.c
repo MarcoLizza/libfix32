@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#define FIX32_IMPLEMENTATION
 #include "test.h"
 
 #include <stdio.h>

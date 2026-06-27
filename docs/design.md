@@ -1,11 +1,11 @@
 # fix32 design recap
 
-This document summarizes the design choices and rationale behind the header-only fixed-point module in `fix32.h` and the associated benchmark suite in `src/bench`.
+This document summarizes the design choices and rationale behind the single-header fixed-point module in `fix32.h` and the associated benchmark suite in `src/bench`.
 
 ## Goals
 
 - Keep the library in straight C99.
-- Keep the library header-only, with `static inline` helpers and no external dependencies.
+- Keep the library single-header, with either one `FIX32_IMPLEMENTATION` translation unit or opt-in `FIX32_STATIC_INLINE` helpers, and no external dependencies.
 - Compare a signed 32-bit fixed-point representation against floating point for conversion-heavy and graphics-style workloads.
 - Avoid math-library helpers such as `lroundf()` and `ceilf()` so the implementation stays self-contained.
 
@@ -26,15 +26,17 @@ This document summarizes the design choices and rationale behind the header-only
   needs direct access to the stored representation.
 - `FIX32_VERSION_MAJOR`, `FIX32_VERSION_MINOR`,
   `FIX32_VERSION_REVISION`, and `FIX32_VERSION_STRING` identify the current
-  header version, `0.1.0`.
+  header version, `0.2.0`.
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.
 
-## Why header-only
+## Why single-header
 
-- Small helper functions benefit from inlining.
-- It avoids a separate compilation unit.
-- It keeps the benchmark and the library easy to drop into small C projects.
+The library is distributed as one header and follows the usual single-header
+pattern: regular includes provide declarations, and one translation unit defines
+`FIX32_IMPLEMENTATION` before including `fix32.h` to emit the function bodies.
+For performance-sensitive code, defining `FIX32_STATIC_INLINE` keeps the old
+`static inline` behavior in the including translation unit.
 
 ## Conversion and rounding policy
 
@@ -756,7 +758,7 @@ Rationale:
 
 The library favors:
 
-- a small header-only C99 implementation
+- a small single-header C99 implementation
 - explicit rounding logic in plain C
 - fast paths where the performance win is meaningful
 - compile-time switches where portability and speed trade off directly
