@@ -130,6 +130,12 @@ This keeps runs deterministic for the same build and parameters.
 | `fixed_div_inputs` | `fix32_t[]` | `fix32_round_from_float(div_inputs[i])` |
 | `fixed_reciprocals` | `fix32_t[]` | `fix32_reciprocal(fixed_div_inputs[i])` |
 
+When the benchmark is built with `BENCHMARK_NARROW_INPUTS`, `float_inputs` are
+generated in `[-8.0, 8.0]` instead. The `benchmark-32-bit` target uses this
+restricted range together with `FIX32_USE_64_BIT=0` and
+`FIX32_FRACTIONAL_BITS=8` so the scalar multiplication and interpolation rows
+stay inside the narrow arithmetic contract.
+
 `int_div_inputs`, `rational_denominators`, and `div_inputs` deliberately avoid
 zero so the division, rational conversion, and reciprocal rows do not benchmark
 divide-by-zero handling.
@@ -496,7 +502,7 @@ seconds * 1e9 / (dest_width * dest_height * repeat_count)
 Examples:
 
 - Is `fix32_round_from_float()` more expensive than leaving a value as float?
-- How expensive is `fix32_mul()` under the current 32-bit or 64-bit multiply configuration?
+- How expensive is `fix32_mul()` under the current narrow or wide arithmetic configuration?
 - Is direct divide or reciprocal reuse a better fit for the intended workload?
 
 ### Use the DDA section to answer incremental-rasterization questions

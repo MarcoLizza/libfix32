@@ -55,6 +55,7 @@ TEST_HEADERS := \
 	src/fix32.h
 
 BENCHMARK := $(BUILD_DIR)/benchmark
+NARROW_BENCHMARK := $(BUILD_DIR)/benchmark-32-bit
 SHIFT_MUL_BENCHMARK := $(BUILD_DIR)/benchmark-shift-mul
 SHIFT_DIV_BENCHMARK := $(BUILD_DIR)/benchmark-shift-div
 BENCH_OUTPUT ?= $(BUILD_DIR)/benchmark-output.txt
@@ -68,14 +69,18 @@ MUL32_TEST_RUNNER := $(BUILD_DIR)/test-32-bit-mul
 SHIFT_MUL_TEST_RUNNER := $(BUILD_DIR)/test-shift-mul
 SHIFT_DIV_TEST_RUNNER := $(BUILD_DIR)/test-shift-div
 
-.PHONY: all benchmark benchmark-shift-mul benchmark-shift-div run-benchmark \
+.PHONY: all benchmark benchmark-32-bit benchmark-shift-mul \
+	benchmark-shift-div run-benchmark run-benchmark-32-bit \
 	run-benchmark-shift-mul run-benchmark-shift-div test check clean
 
 all: $(TEST_RUNNER) $(PORTABLE_TEST_RUNNER) $(NO_ROUNDING_TEST_RUNNER) \
 	$(MUL32_TEST_RUNNER) $(SHIFT_MUL_TEST_RUNNER) $(SHIFT_DIV_TEST_RUNNER) \
-	$(BENCHMARK) $(SHIFT_MUL_BENCHMARK) $(SHIFT_DIV_BENCHMARK)
+	$(BENCHMARK) $(NARROW_BENCHMARK) $(SHIFT_MUL_BENCHMARK) \
+	$(SHIFT_DIV_BENCHMARK)
 
 benchmark: $(BENCHMARK)
+
+benchmark-32-bit: $(NARROW_BENCHMARK)
 
 benchmark-shift-mul: $(SHIFT_MUL_BENCHMARK)
 
@@ -90,6 +95,9 @@ run-benchmark: $(BENCHMARK) $(BENCH_GRAPH_SCRIPT)
 
 run-benchmark-shift-mul: $(SHIFT_MUL_BENCHMARK)
 	$(SHIFT_MUL_BENCHMARK) $(BENCH_ARGS)
+
+run-benchmark-32-bit: $(NARROW_BENCHMARK)
+	$(NARROW_BENCHMARK) $(BENCH_ARGS)
 
 run-benchmark-shift-div: $(SHIFT_DIV_BENCHMARK)
 	$(SHIFT_DIV_BENCHMARK) $(BENCH_ARGS)
@@ -107,6 +115,13 @@ $(BENCHMARK): $(BENCH_SOURCES) $(BENCH_HEADERS)
 	@mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(BENCH_CPPFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(CFLAGS) \
 		$(BENCH_CFLAGS) $(BENCH_SOURCES) $(LDFLAGS) -o $@ $(LDLIBS)
+
+$(NARROW_BENCHMARK): $(BENCH_SOURCES) $(BENCH_HEADERS)
+	@mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(BENCH_CPPFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(CFLAGS) \
+		$(BENCH_CFLAGS) -DFIX32_FRACTIONAL_BITS=8 \
+		-DFIX32_USE_64_BIT=0 -DBENCHMARK_NARROW_INPUTS=1 \
+		$(BENCH_SOURCES) $(LDFLAGS) -o $@ $(LDLIBS)
 
 $(SHIFT_MUL_BENCHMARK): $(BENCH_SOURCES) $(BENCH_HEADERS)
 	@mkdir -p $(@D)

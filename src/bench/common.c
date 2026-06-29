@@ -52,6 +52,14 @@ static float random_divisor(uint32_t *state)
     return (value >= 0.0f) ? (value + 0.5f) : (value - 0.5f);
 }
 
+#if defined(BENCHMARK_NARROW_INPUTS)
+    #define BENCHMARK_FLOAT_INPUT_MIN (-8.0f)
+    #define BENCHMARK_FLOAT_INPUT_MAX 8.0f
+#else
+    #define BENCHMARK_FLOAT_INPUT_MIN (-256.0f)
+    #define BENCHMARK_FLOAT_INPUT_MAX 256.0f
+#endif
+
 static void *checked_alloc(size_t count, size_t item_size)
 {
     void *memory = malloc(count * item_size);
@@ -129,7 +137,9 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
             data->rational_denominators[index] =
                 -data->rational_denominators[index];
         }
-        data->float_inputs[index] = random_float(&state, -256.0f, 256.0f);
+        data->float_inputs[index] =
+            random_float(&state, BENCHMARK_FLOAT_INPUT_MIN,
+                         BENCHMARK_FLOAT_INPUT_MAX);
         data->double_inputs[index] = (double)data->float_inputs[index];
         data->sum_inputs[index] = random_float(&state, -0.5f, 0.5f);
         data->div_inputs[index] = random_divisor(&state);

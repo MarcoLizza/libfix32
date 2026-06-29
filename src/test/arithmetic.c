@@ -56,12 +56,14 @@ void test_arithmetic(void)
     TEST_EXPECT_EQ(fix32_from_int(5),
                    fix32_lerp(fix32_from_int(10), fix32_from_int(20),
                               -FIX32_HALF));
+#if FIX32_USE_64_BIT
     TEST_EXPECT_EQ(fix32_from_raw(INT32_MIN),
                    fix32_lerp(fix32_from_raw(INT32_MIN),
                               fix32_from_raw(INT32_MAX), 0));
     TEST_EXPECT_EQ(fix32_from_raw(INT32_MAX),
                    fix32_lerp(fix32_from_raw(INT32_MIN),
                               fix32_from_raw(INT32_MAX), FIX32_ONE));
+#endif
 
     TEST_EXPECT_EQ(fix32_from_float(3.375f),
                    fix32_mul(one_and_a_half, two_and_a_quarter));

@@ -75,10 +75,10 @@
 //   `fix32_mul()` (`1`) or the truncating divide-based scaling (`0`, default).
 // - `FIX32_USE_SIGNED_SHIFT_DIV`: selects signed left-shift scaling for
 //   `fix32_div()` (`1`) or the multiply-by-scale path (`0`, default).
-// - `FIX32_USE_64_BIT`: selects the wider internal multiply path for helpers
-//   such as `fix32_mul_by_int()` and `fix32_round_to_int()`. If omitted, the
-//   header derives it from `FIX32_INTEGER_BITS` when present, otherwise it
-//   defaults to `1`.
+// - `FIX32_USE_64_BIT`: selects wider internal arithmetic for helpers such as
+//   `fix32_lerp()`, `fix32_mul_by_int()`, and `fix32_round_to_int()`. If
+//   omitted, the header derives it from `FIX32_INTEGER_BITS` when present,
+//   otherwise it defaults to `1`.
 // - `FIX32_INTEGER_BITS`: optional compile-time hint for `FIX32_USE_64_BIT`
 //   auto-selection. With the default `FIX32_FRACTIONAL_BITS` of `16`, the
 //   integer part has 15 bits of precision. If the integer part has more than
@@ -291,7 +291,7 @@ FIX32_DEF fix32_t fix32_from_int(int32_t value)
 #if FIX32_USE_64_BIT
     return value * (int64_t)FIX32_ONE;
 #else   /* FIX32_USE_64_BIT */
-    return value * (int64_t)FIX32_ONE;
+    return value * (int32_t)FIX32_ONE;
 #endif  /* FIX32_USE_64_BIT */
 }
 
@@ -339,10 +339,16 @@ FIX32_DEF fix32_t fix32_sub(fix32_t left, fix32_t right)
 
 FIX32_DEF fix32_t fix32_lerp(fix32_t from, fix32_t to, fix32_t amount)
 {
+#if FIX32_USE_64_BIT
     const int64_t delta = (int64_t)to - (int64_t)from;
 
     return (fix32_t)((int64_t)from +
                      ((delta * (int64_t)amount) / (int64_t)FIX32_ONE));
+#else   /* FIX32_USE_64_BIT */
+    const fix32_t delta = to - from;
+
+    return (fix32_t)(from + ((delta * amount) / FIX32_ONE));
+#endif  /* FIX32_USE_64_BIT */
 }
 
 FIX32_DEF fix32_t fix32_mul_by_int(fix32_t left, int right)

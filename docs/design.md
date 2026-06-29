@@ -154,11 +154,16 @@ from + ((to - from) * amount)
 ```
 
 The `amount` parameter is a fixed-point factor, where `0` returns `from` and
-`FIX32_ONE` returns `to`. The implementation widens the endpoint difference
-before multiplying by `amount`, so both endpoints are exact for every
-`fix32_t` input pair. A 32-bit-only path is deliberately not provided, because
-it would require a narrower operand-range contract and would make this helper
-less generally useful.
+`FIX32_ONE` returns `to`. When `FIX32_USE_64_BIT` is nonzero, the
+implementation widens the endpoint difference before multiplying by `amount`,
+so both endpoints are exact for every `fix32_t` input pair whose final result
+fits in `fix32_t`.
+
+When `FIX32_USE_64_BIT=0`, `fix32_lerp()` uses the same expression with
+`fix32_t` intermediates. In that mode the caller must ensure that `to - from`
+and `(to - from) * amount` both fit in `fix32_t`. Endpoint exactness still
+holds inside that narrowed contract, but the helper is no longer valid for
+arbitrary raw endpoint pairs.
 
 ## Unchecked input contract
 
@@ -318,7 +323,7 @@ typically rounds toward negative infinity on two's-complement targets. That can
 differ by one raw unit from the default division path, which truncates toward
 zero.
 
-### Optional 32-bit multiply path
+### Optional 32-bit arithmetic path
 
 Can be forced with:
 
@@ -327,14 +332,14 @@ Can be forced with:
 ```
 
 With `FIX32_USE_64_BIT=0`, `fix32_mul()` narrows its computed product to
-`int32_t` before scaling, `fix32_mul_by_int()` uses a 32-bit multiplication,
-and `fix32_round_to_int()` uses a 32-bit temporary.
+`int32_t` before scaling, `fix32_lerp()` uses a `fix32_t` delta-product,
+`fix32_mul_by_int()` uses a 32-bit multiplication, and `fix32_round_to_int()`
+uses a 32-bit temporary.
 
 The caller must ensure those narrowed intermediates fit. The library does not
-prove or check that constraint. In particular, the current `fix32_mul()`
-expression still performs a 64-bit multiplication before storing the result in
-the 32-bit temporary; this mode changes the stored intermediate and related
-helper paths rather than eliminating every 64-bit operation from the header.
+prove or check that constraint. This mode is a restricted-range arithmetic
+profile, not a strict no-`int64_t` build; `fix32_from_int()` and `fix32_div()`
+still use 64-bit intermediates for their scaling steps.
 
 ### Optional multiply-range hint
 
@@ -383,14 +388,16 @@ Important detail:
 It is always used by:
 
 - `fix32_from_int()` while scaling the integer input
-- the multiplication expression in `fix32_mul()`
 - the default `fix32_div()` numerator scaling and quotient
 
 When `FIX32_USE_64_BIT` is nonzero, it is also used for:
 
+- `fix32_from_rational()`
 - retaining the full product in `fix32_mul()` until after scaling
+- `fix32_lerp()`
 - `fix32_mul_by_int()`
 - the temporary in `fix32_round_to_int()`
+- the temporary in `fix32_round()`
 
 Operations that remain narrow and simple:
 
