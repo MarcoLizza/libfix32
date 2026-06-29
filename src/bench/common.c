@@ -87,12 +87,15 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
     data->double_inputs =
         checked_alloc(sample_count, sizeof(*data->double_inputs));
     data->sum_inputs = checked_alloc(sample_count, sizeof(*data->sum_inputs));
+    data->lerp_inputs = checked_alloc(sample_count, sizeof(*data->lerp_inputs));
     data->div_inputs = checked_alloc(sample_count, sizeof(*data->div_inputs));
     data->float_reciprocals =
         checked_alloc(sample_count, sizeof(*data->float_reciprocals));
     data->fixed_inputs = checked_alloc(sample_count, sizeof(*data->fixed_inputs));
     data->sum_fixed_inputs =
         checked_alloc(sample_count, sizeof(*data->sum_fixed_inputs));
+    data->fixed_lerp_inputs =
+        checked_alloc(sample_count, sizeof(*data->fixed_lerp_inputs));
     data->fixed_div_inputs =
         checked_alloc(sample_count, sizeof(*data->fixed_div_inputs));
     data->fixed_reciprocals =
@@ -102,8 +105,9 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         data->int_div_inputs == NULL || data->rational_numerators == NULL ||
         data->rational_denominators == NULL || data->float_inputs == NULL ||
         data->double_inputs == NULL || data->sum_inputs == NULL ||
-        data->div_inputs == NULL || data->float_reciprocals == NULL ||
-        data->fixed_inputs == NULL || data->sum_fixed_inputs == NULL ||
+        data->lerp_inputs == NULL || data->div_inputs == NULL ||
+        data->float_reciprocals == NULL || data->fixed_inputs == NULL ||
+        data->sum_fixed_inputs == NULL || data->fixed_lerp_inputs == NULL ||
         data->fixed_div_inputs == NULL || data->fixed_reciprocals == NULL) {
         return 0;
     }
@@ -140,6 +144,12 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
             fix32_reciprocal(data->fixed_div_inputs[index]);
     }
 
+    for (index = 0; index < sample_count; ++index) {
+        data->lerp_inputs[index] = random_float(&state, 0.0f, 1.0f);
+        data->fixed_lerp_inputs[index] =
+            fix32_round_from_float(data->lerp_inputs[index]);
+    }
+
     return 1;
 }
 
@@ -153,10 +163,12 @@ void benchmark_data_destroy(benchmark_data_t *data)
     free(data->float_inputs);
     free(data->double_inputs);
     free(data->sum_inputs);
+    free(data->lerp_inputs);
     free(data->div_inputs);
     free(data->float_reciprocals);
     free(data->fixed_inputs);
     free(data->sum_fixed_inputs);
+    free(data->fixed_lerp_inputs);
     free(data->fixed_div_inputs);
     free(data->fixed_reciprocals);
 }

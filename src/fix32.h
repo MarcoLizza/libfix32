@@ -110,6 +110,8 @@
 //   intermediate floating-point value. The denominator must be nonzero and the
 //   scaled intermediate must fit the selected arithmetic path.
 // - `fix32_add()` / `fix32_sub()`: fixed-point addition and subtraction.
+// - `fix32_lerp()`: unclamped linear interpolation/extrapolation between two
+//   fixed-point values.
 // - `fix32_mul_by_int()`: fixed-point multiplied by an integer.
 // - `fix32_mul()`: fixed-point multiplication with selectable scaling path.
 // - `fix32_div_by_int()`: fixed-point divided by an integer.
@@ -221,6 +223,7 @@ extern fix32_t fix32_round_from_double(double value);
 extern fix32_t fix32_from_rational(int32_t numerator, int32_t denominator);
 extern fix32_t fix32_add(fix32_t left, fix32_t right);
 extern fix32_t fix32_sub(fix32_t left, fix32_t right);
+extern fix32_t fix32_lerp(fix32_t from, fix32_t to, fix32_t amount);
 extern fix32_t fix32_mul_by_int(fix32_t left, int right);
 extern fix32_t fix32_mul(fix32_t left, fix32_t right);
 extern fix32_t fix32_div_by_int(fix32_t numerator, int32_t denominator);
@@ -332,6 +335,14 @@ FIX32_DEF fix32_t fix32_add(fix32_t left, fix32_t right)
 FIX32_DEF fix32_t fix32_sub(fix32_t left, fix32_t right)
 {
     return left - right;
+}
+
+FIX32_DEF fix32_t fix32_lerp(fix32_t from, fix32_t to, fix32_t amount)
+{
+    const int64_t delta = (int64_t)to - (int64_t)from;
+
+    return (fix32_t)((int64_t)from +
+                     ((delta * (int64_t)amount) / (int64_t)FIX32_ONE));
 }
 
 FIX32_DEF fix32_t fix32_mul_by_int(fix32_t left, int right)

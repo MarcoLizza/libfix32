@@ -121,10 +121,12 @@ This keeps runs deterministic for the same build and parameters.
 | `float_inputs` | `float[]` | floats in `[-256.0, 256.0]` |
 | `double_inputs` | `double[]` | double versions of `float_inputs` |
 | `sum_inputs` | `float[]` | floats in `[-0.5, 0.5]` |
+| `lerp_inputs` | `float[]` | interpolation factors in `[0.0, 1.0]` |
 | `div_inputs` | `float[]` | nonzero divisors roughly in `[-16.5, -0.5] U [0.5, 16.5]` |
 | `float_reciprocals` | `float[]` | `1.0f / div_inputs[i]` |
 | `fixed_inputs` | `fix32_t[]` | `fix32_round_from_float(float_inputs[i])` |
 | `sum_fixed_inputs` | `fix32_t[]` | `fix32_round_from_float(sum_inputs[i])` |
+| `fixed_lerp_inputs` | `fix32_t[]` | `fix32_round_from_float(lerp_inputs[i])` |
 | `fixed_div_inputs` | `fix32_t[]` | `fix32_round_from_float(div_inputs[i])` |
 | `fixed_reciprocals` | `fix32_t[]` | `fix32_reciprocal(fixed_div_inputs[i])` |
 
@@ -158,6 +160,7 @@ sample_count * repeat_count
 | `double -> fixed round` | `fix32_round_from_double(double_inputs[i])` | `double_inputs[i]` | Rounded double conversion |
 | `sum` | repeated `fix32_add()` | repeated float addition | Accumulation throughput |
 | `subtract` | `fix32_sub()` | float subtraction | Subtraction throughput |
+| `lerp` | `fix32_lerp()` | `a + ((b - a) * t)` in float | Unclamped interpolation |
 | `multiply` | `fix32_mul()` | float multiplication | Fixed-by-fixed multiplication |
 | `multiply by int` | `fix32_mul_by_int()` | float-by-int multiplication | Integer scaling |
 | `reciprocal by int` | `fix32_reciprocal_by_int()` | float reciprocal converted to fixed | Integer reciprocal |

@@ -145,6 +145,21 @@ Rationale:
 `fix32_floor()`, `fix32_ceil()`, and `fix32_round()` apply the corresponding
 rounding policy while keeping the result in `fix32_t` representation.
 
+### Linear interpolation
+
+`fix32_lerp()` performs unclamped linear interpolation or extrapolation:
+
+```c
+from + ((to - from) * amount)
+```
+
+The `amount` parameter is a fixed-point factor, where `0` returns `from` and
+`FIX32_ONE` returns `to`. The implementation widens the endpoint difference
+before multiplying by `amount`, so both endpoints are exact for every
+`fix32_t` input pair. A 32-bit-only path is deliberately not provided, because
+it would require a narrower operand-range contract and would make this helper
+less generally useful.
+
 ## Unchecked input contract
 
 The header performs no runtime validation and does not provide debug-only
@@ -486,6 +501,7 @@ These measure the isolated cost of:
 
 - integer, float, and double conversion to fixed-point
 - add and subtract
+- linear interpolation
 - fixed and integer multiply/divide operations
 - integer and fixed-point reciprocals
 - multiply by a precomputed reciprocal

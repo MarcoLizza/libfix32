@@ -42,6 +42,27 @@ void test_arithmetic(void)
                    fix32_sub(fix32_from_float(-1.25f),
                              fix32_from_float(0.5f)));
 
+    TEST_EXPECT_EQ(fix32_from_int(10),
+                   fix32_lerp(fix32_from_int(10), fix32_from_int(20), 0));
+    TEST_EXPECT_EQ(fix32_from_int(20),
+                   fix32_lerp(fix32_from_int(10), fix32_from_int(20),
+                              FIX32_ONE));
+    TEST_EXPECT_EQ(fix32_from_int(15),
+                   fix32_lerp(fix32_from_int(10), fix32_from_int(20),
+                              FIX32_HALF));
+    TEST_EXPECT_EQ(fix32_from_float(12.5f),
+                   fix32_lerp(fix32_from_int(10), fix32_from_int(20),
+                              FIX32_ONE / 4));
+    TEST_EXPECT_EQ(fix32_from_int(5),
+                   fix32_lerp(fix32_from_int(10), fix32_from_int(20),
+                              -FIX32_HALF));
+    TEST_EXPECT_EQ(fix32_from_raw(INT32_MIN),
+                   fix32_lerp(fix32_from_raw(INT32_MIN),
+                              fix32_from_raw(INT32_MAX), 0));
+    TEST_EXPECT_EQ(fix32_from_raw(INT32_MAX),
+                   fix32_lerp(fix32_from_raw(INT32_MIN),
+                              fix32_from_raw(INT32_MAX), FIX32_ONE));
+
     TEST_EXPECT_EQ(fix32_from_float(3.375f),
                    fix32_mul(one_and_a_half, two_and_a_quarter));
     TEST_EXPECT_EQ(fix32_from_float(-3.0f),

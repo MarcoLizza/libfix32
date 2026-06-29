@@ -323,6 +323,45 @@ static void bench_float_sub(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
+static void bench_fixed_lerp(const benchmark_data_t *data)
+{
+    int64_t checksum = 0;
+    volatile const fix32_t *left_inputs = data->fixed_inputs;
+    volatile const fix32_t *right_inputs = data->sum_fixed_inputs;
+    volatile const fix32_t *amounts = data->fixed_lerp_inputs;
+    size_t repeat;
+    size_t index;
+
+    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+        for (index = 0; index < data->sample_count; ++index) {
+            checksum += fix32_lerp(left_inputs[index], right_inputs[index],
+                                   amounts[index]);
+        }
+    }
+
+    g_int_sink = checksum;
+}
+
+static void bench_float_lerp(const benchmark_data_t *data)
+{
+    double checksum = 0.0;
+    volatile const float *left_inputs = data->float_inputs;
+    volatile const float *right_inputs = data->sum_inputs;
+    volatile const float *amounts = data->lerp_inputs;
+    size_t repeat;
+    size_t index;
+
+    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+        for (index = 0; index < data->sample_count; ++index) {
+            const float left = left_inputs[index];
+            const float right = right_inputs[index];
+            checksum += left + ((right - left) * amounts[index]);
+        }
+    }
+
+    g_float_sink = checksum;
+}
+
 static void bench_fixed_mul(const benchmark_data_t *data)
 {
     int64_t checksum = 0;
@@ -1055,6 +1094,7 @@ void benchmark_print_scalar_results(const benchmark_data_t *data)
           bench_double_from_double },
         { "sum", bench_fixed_sum, bench_float_sum },
         { "subtract", bench_fixed_sub, bench_float_sub },
+        { "lerp", bench_fixed_lerp, bench_float_lerp },
         { "multiply", bench_fixed_mul, bench_float_mul },
         { "multiply by int", bench_fixed_mul_by_int, bench_float_mul_by_int },
         { "reciprocal by int", bench_fixed_reciprocal_by_int,

@@ -10,7 +10,7 @@ I started to write this library to support fixed-point math in my [game engine](
 
 That said, I didn't want to make it a one-off for my game engine, but generally useful and reusable.
 
-Internally, it uses a signed 32-bit `fix32_t` representation which is a good balance between range and precision in most scenarios. It includes conversion helpers for integers, floating-point values, and integer ratios, plus a number of configuration options to allow users to customize the behavior and performance characteristics of the library to suit their specific needs.
+Internally, it uses a signed 32-bit `fix32_t` representation which is a good balance between range and precision in most scenarios. It includes conversion helpers for integers, floating-point values, and integer ratios, basic arithmetic, interpolation, plus a number of configuration options to allow users to customize the behavior and performance characteristics of the library to suit their specific needs.
 
 By no means a comprehensive fixed-point library (see [libfixmath](https://code.google.com/archive/p/libfixmath/) for that purpose), `fix32` provides a basic set of operations and helpers that are commonly needed in game development and other performance-sensitive applications.
 

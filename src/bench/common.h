@@ -44,10 +44,12 @@ typedef struct benchmark_data {
     float *float_inputs;
     double *double_inputs;
     float *sum_inputs;
+    float *lerp_inputs;
     float *div_inputs;
     float *float_reciprocals;
     fix32_t *fixed_inputs;
     fix32_t *sum_fixed_inputs;
+    fix32_t *fixed_lerp_inputs;
     fix32_t *fixed_div_inputs;
     fix32_t *fixed_reciprocals;
 } benchmark_data_t;
