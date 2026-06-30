@@ -30,6 +30,32 @@ This document summarizes the design choices and rationale behind the single-head
 
 The original target was a classic 16:16 layout because it is simple, familiar, and a good baseline for graphics-oriented arithmetic.
 
+### Format profiles and range contracts
+
+`FIX32_FRACTIONAL_BITS` changes the scale used to interpret the raw `fix32_t` value. It does not reduce the storage type and it does not make the library reject values outside a chosen logical range. A program can therefore use `FIX32_FRACTIONAL_BITS=8` as a Q16.8-style profile by convention, but the header will still accept any `int32_t` raw value.
+
+This distinction matters for the 32-bit arithmetic path. A full-range Q16.8 value has much less fractional precision than 16.16 and is often a better fit for game coordinates, but multiplying two full-range Q16.8 raw values can still overflow a 32-bit product before the result is scaled back down. Narrow arithmetic is only valid when the actual operand range is small enough that the intermediate product fits.
+
+The useful way to think about a restricted profile is:
+
+```text
+integer magnitude bits + fractional bits <= 15
+```
+
+When that condition holds for operands passed to the narrowed helpers, raw products and scale products fit in signed 32-bit arithmetic. `FIX32_INTEGER_BITS` is the caller's compile-time declaration of that range for auto-selecting the narrow path; it is not a validation feature.
+
+Some practical profiles are:
+
+| Profile | Suggested macros | Effective contract | Narrow arithmetic |
+| --- | --- | --- | --- |
+| Default 16.16 | `FIX32_FRACTIONAL_BITS=16` | General-purpose fixed-point, about 1/65536 precision | Uses wide intermediates by default |
+| Q16.8-style | `FIX32_FRACTIONAL_BITS=8` | About 1/256 precision with a large conventional coordinate range | Still needs wide intermediates for full-range multiply |
+| Restricted 7.8 | `FIX32_FRACTIONAL_BITS=8`, `FIX32_INTEGER_BITS=7` | About +/-128 with 1/256 precision | Fits the 32-bit intermediate contract |
+| Restricted 11.4 | `FIX32_FRACTIONAL_BITS=4`, `FIX32_INTEGER_BITS=11` | About +/-2048 with 1/16 precision | Fits the 32-bit intermediate contract |
+| Restricted 3.12 | `FIX32_FRACTIONAL_BITS=12`, `FIX32_INTEGER_BITS=3` | About +/-8 with 1/4096 precision | Fits the 32-bit intermediate contract |
+
+These profiles are documentation and compile-time policy only. The library does not add runtime range checks, assertions, saturation, or clamping around them; callers are expected to know the numeric range of their workload.
+
 ## Why single-header
 
 The library is distributed as one header and follows the usual single-header
@@ -331,17 +357,18 @@ Can be forced with:
 #define FIX32_USE_64_BIT 0
 ```
 
-With `FIX32_USE_64_BIT=0`, `fix32_mul()` narrows its computed product to
-`int32_t` before scaling, `fix32_lerp()` uses a `fix32_t` delta-product,
-`fix32_mul_by_int()` uses a 32-bit multiplication, and `fix32_round_to_int()`
-uses a 32-bit temporary.
+With `FIX32_USE_64_BIT=0`, the active helper definitions avoid `int64_t`.
+`fix32_from_int()` scales in `int32_t`, `fix32_from_rational()` and
+`fix32_div()` scale their numerators with `fix32_t` intermediates,
+`fix32_lerp()` uses a `fix32_t` delta-product, `fix32_mul()` retains its
+product in `int32_t`, `fix32_mul_by_int()` uses a 32-bit multiplication, and
+the rounding helpers use 32-bit temporaries.
 
 The caller must ensure those narrowed intermediates fit. The library does not
 prove or check that constraint. This mode is a restricted-range arithmetic
-profile, not a strict no-`int64_t` build; `fix32_from_int()` and `fix32_div()`
-still use 64-bit intermediates for their scaling steps.
+profile, not a runtime-checked numeric format.
 
-### Optional multiply-range hint
+### Optional arithmetic-range hint
 
 The library supports:
 
@@ -349,9 +376,9 @@ The library supports:
 #define FIX32_INTEGER_BITS ...
 ```
 
-This macro is only a hint for multiply-path selection. It does **not** change the stored format.
+This macro is only a hint for wide/narrow arithmetic-path selection. It does **not** change the stored format.
 
-If `FIX32_USE_64_BIT` is not defined explicitly, and `FIX32_INTEGER_BITS` is defined, the header derives the multiply path from:
+If `FIX32_USE_64_BIT` is not defined explicitly, and `FIX32_INTEGER_BITS` is defined, the header derives `FIX32_USE_64_BIT` from:
 
 ```c
 ((FIX32_INTEGER_BITS + FIX32_FRACTIONAL_BITS) > 15)
@@ -371,33 +398,32 @@ Rationale:
 (FIX32_INTEGER_BITS + FIX32_FRACTIONAL_BITS) > 15
 ```
 
-- The shorter test says the same thing with less clutter.
+- The shorter test says the same thing with less clutter. The same bound also keeps integer-to-fixed scaling and fixed division numerator scaling inside signed 32-bit arithmetic, because those intermediates use one raw operand and one scale factor instead of two full raw operands.
 
 Important detail:
 
-- If no multiply-range hint is provided, the library retains the full 64-bit
-  product through the scaling step by default.
+- If no arithmetic-range hint is provided, the library keeps the wide intermediate path by default.
 - The earlier idea of defaulting the hint to `31 - FIX32_FRACTIONAL_BITS` was rejected because it made the auto-selection meaningless: it would always force 64-bit multiply.
-- The hint is used only for compile-time path selection. It does not change the
+- The hint is used only for compile-time wide/narrow path selection. It does not change the
   fixed-point format and is not enforced at runtime.
 
 ## Where 64-bit intermediates are used
 
-64-bit arithmetic is used selectively.
-
-It is always used by:
+64-bit arithmetic is used selectively. When `FIX32_USE_64_BIT` is nonzero, it
+is used by:
 
 - `fix32_from_int()` while scaling the integer input
-- the default `fix32_div()` numerator scaling and quotient
-
-When `FIX32_USE_64_BIT` is nonzero, it is also used for:
-
-- `fix32_from_rational()`
+- `fix32_from_rational()` while scaling the numerator
+- `fix32_div()` while scaling the numerator and computing the quotient
 - retaining the full product in `fix32_mul()` until after scaling
 - `fix32_lerp()`
 - `fix32_mul_by_int()`
 - the temporary in `fix32_round_to_int()`
 - the temporary in `fix32_round()`
+
+When `FIX32_USE_64_BIT=0`, the active helper definitions avoid `int64_t` and
+use `fix32_t` or `int32_t` intermediates instead. That profile is only valid
+inside the caller-declared range contract.
 
 Operations that remain narrow and simple:
 

@@ -68,21 +68,23 @@
 //   all-inline behavior for performance-sensitive code.
 // - `FIX32_INLINE`: overrides the inline spelling used by `FIX32_STATIC_INLINE`.
 // - `FIX32_FRACTIONAL_BITS`: number of fractional bits in the fixed-point
-//   representation, from `1` to `30` (default to `16`).
+//   representation, from `1` to `30` (default to `16`). This changes the
+//   scale, but it does not constrain the raw `fix32_t` input range.
 // - `FIX32_USE_ARITHMETIC_SHIFT_FLOOR`: selects the arithmetic-shift floor
 //   fast path (`1`, default) or the portable division/remainder fallback (`0`).
 // - `FIX32_USE_SIGNED_SHIFT_MUL`: selects signed right-shift scaling for
 //   `fix32_mul()` (`1`) or the truncating divide-based scaling (`0`, default).
 // - `FIX32_USE_SIGNED_SHIFT_DIV`: selects signed left-shift scaling for
 //   `fix32_div()` (`1`) or the multiply-by-scale path (`0`, default).
-// - `FIX32_USE_64_BIT`: selects wider internal arithmetic for helpers such as
-//   `fix32_lerp()`, `fix32_mul_by_int()`, and `fix32_round_to_int()`. If
-//   omitted, the header derives it from `FIX32_INTEGER_BITS` when present,
-//   otherwise it defaults to `1`.
-// - `FIX32_INTEGER_BITS`: optional compile-time hint for `FIX32_USE_64_BIT`
-//   auto-selection. With the default `FIX32_FRACTIONAL_BITS` of `16`, the
-//   integer part has 15 bits of precision. If the integer part has more than
-//   15 bits, `FIX32_USE_64_BIT` will be automatically selected.
+// - `FIX32_USE_64_BIT`: selects wider internal arithmetic. When it is `0`, the
+//   active helper definitions avoid `int64_t` and the caller must keep
+//   intermediates inside the documented 32-bit range. If omitted, the header
+//   derives it from `FIX32_INTEGER_BITS` when present, otherwise it defaults to
+//   `1`.
+// - `FIX32_INTEGER_BITS`: optional caller-declared operand-range hint for
+//   `FIX32_USE_64_BIT` auto-selection. It is not checked or enforced. If the
+//   declared integer bits plus `FIX32_FRACTIONAL_BITS` exceed 15,
+//   `FIX32_USE_64_BIT` will be automatically selected.
 // - `FIX32_NO_ROUNDING`: switches the `FIX32_FROM_FLOAT`,
 //   `FIX32_FROM_DOUBLE`, and `FIX32_TO_INT` helper macros to their truncating
 //   variants.
@@ -177,16 +179,17 @@
 
 // Set to 1 before including this header to scale division numerators with a
 // signed left shift. This invokes undefined behavior when the numerator is
-// negative. The default division path is defined for every `fix32_t`
-// value and is typically optimized to the same machine instruction.
+// negative. The default division path multiplies by `FIX32_ONE`; with
+// `FIX32_USE_64_BIT=0`, that scaled numerator must fit in `fix32_t`.
 #if !defined(FIX32_USE_SIGNED_SHIFT_DIV)
     #define FIX32_USE_SIGNED_SHIFT_DIV 0
 #endif  /* !defined(FIX32_USE_SIGNED_SHIFT_DIV) */
 
 // Optional hint: define the maximum magnitude bits expected to the left of the
-// radix point in operands passed to `fix32_mul()`. This does not change the
-// stored fixed-point format; it only describes the operand range the
-// programmer promises to use for auto-selecting the path.
+// radix point in operands passed to operations that use narrowed
+// intermediates. This does not change the stored fixed-point format; it only
+// describes the operand range the programmer promises to use for
+// auto-selecting the path.
 //
 // If this hint is not provided, the header falls back to the safe 64-bit
 // path by default.
@@ -393,15 +396,26 @@ FIX32_DEF fix32_t fix32_div(fix32_t numerator, fix32_t denominator)
     //
     //   (N * S) / D = (n * S * S) / (d * S) = n * S / d = (n / d) * S (correct scaling, no precision loss)
     //
-#if FIX32_USE_SIGNED_SHIFT_DIV
-    const int64_t scaled_numerator = (int64_t)numerator << FIX32_FRACTIONAL_BITS;
-#else   /* FIX32_USE_SIGNED_SHIFT_DIV */
+#if FIX32_USE_64_BIT
+    #if FIX32_USE_SIGNED_SHIFT_DIV
+    const int64_t scaled_numerator =
+        (int64_t)numerator << FIX32_FRACTIONAL_BITS;
+    #else   /* FIX32_USE_SIGNED_SHIFT_DIV */
     const int64_t scaled_numerator = (int64_t)numerator * (int64_t)FIX32_ONE;
-#endif  /* FIX32_USE_SIGNED_SHIFT_DIV */
+    #endif  /* FIX32_USE_SIGNED_SHIFT_DIV */
     const int64_t quotient = scaled_numerator / (int64_t)denominator;
     // We could round here, for better precision, but it would be more
     // expensive, and probably not that worth.
     return (fix32_t)quotient;
+#else   /* FIX32_USE_64_BIT */
+    #if FIX32_USE_SIGNED_SHIFT_DIV
+    const fix32_t scaled_numerator = numerator << FIX32_FRACTIONAL_BITS;
+    #else   /* FIX32_USE_SIGNED_SHIFT_DIV */
+    const fix32_t scaled_numerator = numerator * FIX32_ONE;
+    #endif  /* FIX32_USE_SIGNED_SHIFT_DIV */
+
+    return (fix32_t)(scaled_numerator / denominator);
+#endif  /* FIX32_USE_64_BIT */
 }
 
 FIX32_DEF fix32_t fix32_reciprocal_by_int(int32_t value)

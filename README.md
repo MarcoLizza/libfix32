@@ -54,9 +54,17 @@ A number of configuration macros are available to customize the behavior and per
   `fix32_div()`, default `0`
 - `FIX32_USE_64_BIT`: selects wider intermediates for selected operations,
   default `1`
-- `FIX32_INTEGER_BITS`: optional hint used to auto-select `FIX32_USE_64_BIT`
+- `FIX32_INTEGER_BITS`: optional operand-range hint used to auto-select
+  `FIX32_USE_64_BIT`; it is not enforced at runtime
 - `FIX32_NO_ROUNDING`: switches the `FIX32_FROM_FLOAT`, `FIX32_FROM_DOUBLE`,
   and `FIX32_TO_INT` helper macros to truncating variants
+
+`FIX32_FRACTIONAL_BITS` changes the scale, but it does not by itself create a
+checked Q-format. For example, 8 fractional bits are useful for a Q16.8-style
+value range, but full-range Q16.8 multiplication still needs a wide
+intermediate. When `FIX32_USE_64_BIT=0`, the active helper definitions avoid `int64_t`.
+That narrow profile is only appropriate when the caller also keeps the actual
+operand range small enough for the documented intermediate contract.
 
 Typical overrides look like this:
 
