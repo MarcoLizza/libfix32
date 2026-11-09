@@ -117,7 +117,8 @@
 // - `fix32_mul_by_int()`: fixed-point multiplied by an integer.
 // - `fix32_mul()`: fixed-point multiplication with selectable scaling path.
 // - `fix32_div_by_int()`: fixed-point divided by an integer.
-// - `fix32_div()`: fixed-point division with selectable scaling path.
+// - `fix32_div()`: fixed-point division with selectable scaling path and
+//   truncation toward zero.
 // - `fix32_reciprocal_by_int()`: reciprocal of an integer in fixed-point.
 // - `fix32_reciprocal()`: reciprocal of a fixed-point value.
 // - `fix32_floor_to_int()` / `fix32_ceil_to_int()` / `fix32_trunc_to_int()` /
@@ -306,7 +307,18 @@ FIX32_DEF fix32_t fix32_from_float(float value)
 FIX32_DEF fix32_t fix32_round_from_float(float value)
 {
     const float scaled = value * (float)FIX32_ONE;
-    return (fix32_t)(scaled + ((scaled >= 0.0f) ? 0.5f : -0.5f));
+    const fix32_t whole = (fix32_t)scaled;
+    const float fractional = scaled - (float)whole;
+
+    // Biasing the float before truncation can round an exact raw integer up,
+    // or turn a value just below a half-unit boundary into a tie.
+    if (fractional >= 0.5f) {
+        return whole + 1;
+    }
+    if (fractional <= -0.5f) {
+        return whole - 1;
+    }
+    return whole;
 }
 
 FIX32_DEF fix32_t fix32_from_double(double value)
@@ -317,7 +329,16 @@ FIX32_DEF fix32_t fix32_from_double(double value)
 FIX32_DEF fix32_t fix32_round_from_double(double value)
 {
     const double scaled = value * (double)FIX32_ONE;
-    return (fix32_t)(scaled + ((scaled >= 0.0) ? 0.5 : -0.5));
+    const fix32_t whole = (fix32_t)scaled;
+    const double fractional = scaled - (double)whole;
+
+    if (fractional >= 0.5) {
+        return whole + 1;
+    }
+    if (fractional <= -0.5) {
+        return whole - 1;
+    }
+    return whole;
 }
 
 FIX32_DEF fix32_t fix32_from_rational(int32_t numerator, int32_t denominator)
@@ -478,13 +499,14 @@ FIX32_DEF int fix32_trunc_to_int(fix32_t value)
 
 FIX32_DEF int32_t fix32_round_to_int(fix32_t value)
 {
-#if FIX32_USE_64_BIT
-    int64_t aux = (int64_t)value; // Use `int64_t` to avoid overflow when adding `FIX32_ONE_HALF`.
-#else   /* FIX32_USE_64_BIT */
-    int32_t aux = value;
-#endif  /* FIX32_USE_64_BIT */
-    aux += (aux >= 0) ? FIX32_HALF : -FIX32_HALF;
-    return (int32_t)(aux / FIX32_ONE); // Dividing (not shifting) will round to the nearest integer, with ties rounding away from zero, which is what we want for negative numbers.
+    // Unsigned subtraction handles INT32_MIN, and the half-unit bias fits in
+    // uint32_t for every supported scale. The shifted magnitude fits int32_t.
+    const uint32_t magnitude = (value < 0)
+        ? UINT32_C(0) - (uint32_t)value : (uint32_t)value;
+    const int32_t rounded = (int32_t)((magnitude + (uint32_t)FIX32_HALF) >>
+                                     FIX32_FRACTIONAL_BITS);
+
+    return (value < 0) ? -rounded : rounded;
 }
 
 FIX32_DEF float fix32_to_float(fix32_t value)

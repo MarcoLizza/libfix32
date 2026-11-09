@@ -25,7 +25,6 @@
 #include "common.h"
 
 #include <stdio.h>
-#include <time.h>
 
 typedef struct sprite_case {
     const char *label;
@@ -35,26 +34,9 @@ typedef struct sprite_case {
     int32_t dest_height;
 } sprite_case_t;
 
-typedef void (*sprite_benchmark_fn)(const sprite_case_t *sprite_case,
-                                    size_t repeat_count);
-
-static double run_sprite_benchmark(sprite_benchmark_fn fn,
-                                   const sprite_case_t *sprite_case,
-                                   size_t repeat_count)
+static void bench_fixed_sprite_scaler(const void *context, size_t repeat_count)
 {
-    const clock_t start = clock();
-    const double ticks_per_second = (double)CLOCKS_PER_SEC;
-    clock_t finish;
-
-    fn(sprite_case, repeat_count);
-    finish = clock();
-
-    return (double)(finish - start) / ticks_per_second;
-}
-
-static void bench_fixed_sprite_scaler(const sprite_case_t *sprite_case,
-                                      size_t repeat_count)
-{
+    const sprite_case_t *sprite_case = context;
     const fix32_t step_x =
         fix32_div_by_int(fix32_from_int(sprite_case->src_width),
                          sprite_case->dest_width);
@@ -88,9 +70,9 @@ static void bench_fixed_sprite_scaler(const sprite_case_t *sprite_case,
     g_int_sink = checksum;
 }
 
-static void bench_float_sprite_scaler(const sprite_case_t *sprite_case,
-                                      size_t repeat_count)
+static void bench_float_sprite_scaler(const void *context, size_t repeat_count)
 {
+    const sprite_case_t *sprite_case = context;
     const float step_x =
         (float)sprite_case->src_width / (float)sprite_case->dest_width;
     const float step_y =
@@ -151,12 +133,12 @@ void benchmark_print_sprite_results(size_t repeat_count)
         const double operations =
             (double)(sprite_case->dest_width * sprite_case->dest_height) *
             (double)repeat_count;
-        const double fixed_seconds =
-            run_sprite_benchmark(bench_fixed_sprite_scaler, sprite_case,
-                                 repeat_count);
-        const double float_seconds =
-            run_sprite_benchmark(bench_float_sprite_scaler, sprite_case,
-                                 repeat_count);
+        const benchmark_measurement_t measurement =
+            benchmark_measure_pair(bench_fixed_sprite_scaler,
+                                   bench_float_sprite_scaler,
+                                   sprite_case, repeat_count);
+        const double fixed_seconds = measurement.fixed_seconds;
+        const double float_seconds = measurement.float_seconds;
         const double fixed_ns = (fixed_seconds * 1.0e9) / operations;
         const double float_ns = (float_seconds * 1.0e9) / operations;
         const double ratio = (float_ns > 0.0) ? (fixed_ns / float_ns) : 0.0;
@@ -166,5 +148,6 @@ void benchmark_print_sprite_results(size_t repeat_count)
                (unsigned long)(sprite_case->dest_width *
                                sprite_case->dest_height),
                fixed_ns, float_ns, ratio);
+        benchmark_print_spread(&measurement);
     }
 }

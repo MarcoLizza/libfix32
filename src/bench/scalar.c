@@ -25,9 +25,6 @@
 #include "common.h"
 
 #include <stdio.h>
-#include <time.h>
-
-typedef void (*benchmark_fn)(const benchmark_data_t *data);
 
 typedef struct benchmark_pair {
     const char *label;
@@ -63,26 +60,15 @@ static int32_t double_round_to_int(double value)
     return whole;
 }
 
-static double run_benchmark(benchmark_fn fn, const benchmark_data_t *data)
+static void bench_fixed_from_int(const void *context, size_t repeat_count)
 {
-    const clock_t start = clock();
-    const double ticks_per_second = (double)CLOCKS_PER_SEC;
-    clock_t finish;
-
-    fn(data);
-    finish = clock();
-
-    return (double)(finish - start) / ticks_per_second;
-}
-
-static void bench_fixed_from_int(const benchmark_data_t *data)
-{
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const int32_t *inputs = data->int_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value = fix32_from_int(inputs[index]);
             checksum += value;
@@ -92,14 +78,15 @@ static void bench_fixed_from_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_from_int(const benchmark_data_t *data)
+static void bench_float_from_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const int32_t *inputs = data->int_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const float value = (float)inputs[index];
             checksum += value;
@@ -109,15 +96,16 @@ static void bench_float_from_int(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_from_rational(const benchmark_data_t *data)
+static void bench_fixed_from_rational(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const int32_t *numerators = data->rational_numerators;
     volatile const int32_t *denominators = data->rational_denominators;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value =
                 fix32_from_rational(numerators[index], denominators[index]);
@@ -128,15 +116,16 @@ static void bench_fixed_from_rational(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_from_rational(const benchmark_data_t *data)
+static void bench_float_from_rational(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const int32_t *numerators = data->rational_numerators;
     volatile const int32_t *denominators = data->rational_denominators;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value =
                 fix32_from_float((float)numerators[index] /
@@ -148,14 +137,15 @@ static void bench_float_from_rational(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_from_float(const benchmark_data_t *data)
+static void bench_fixed_from_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value = fix32_from_float(inputs[index]);
             checksum += value;
@@ -165,14 +155,15 @@ static void bench_fixed_from_float(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_round_from_float(const benchmark_data_t *data)
+static void bench_fixed_round_from_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value = fix32_round_from_float(inputs[index]);
             checksum += value;
@@ -182,14 +173,15 @@ static void bench_fixed_round_from_float(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_from_float(const benchmark_data_t *data)
+static void bench_float_from_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const float value = inputs[index];
             checksum += value;
@@ -199,14 +191,15 @@ static void bench_float_from_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_from_double(const benchmark_data_t *data)
+static void bench_fixed_from_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value = fix32_from_double(inputs[index]);
             checksum += value;
@@ -216,14 +209,15 @@ static void bench_fixed_from_double(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_round_from_double(const benchmark_data_t *data)
+static void bench_fixed_round_from_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t value = fix32_round_from_double(inputs[index]);
             checksum += value;
@@ -233,14 +227,15 @@ static void bench_fixed_round_from_double(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_double_from_double(const benchmark_data_t *data)
+static void bench_double_from_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += inputs[index];
         }
@@ -249,14 +244,15 @@ static void bench_double_from_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_sum(const benchmark_data_t *data)
+static void bench_fixed_sum(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->sum_fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         fix32_t total = 0;
 
         for (index = 0; index < data->sample_count; ++index) {
@@ -269,14 +265,15 @@ static void bench_fixed_sum(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_sum(const benchmark_data_t *data)
+static void bench_float_sum(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->sum_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         float total = 0.0f;
 
         for (index = 0; index < data->sample_count; ++index) {
@@ -289,15 +286,16 @@ static void bench_float_sum(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_sub(const benchmark_data_t *data)
+static void bench_fixed_sub(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *left_inputs = data->fixed_inputs;
     volatile const fix32_t *right_inputs = data->sum_fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_sub(left_inputs[index], right_inputs[index]);
         }
@@ -306,15 +304,16 @@ static void bench_fixed_sub(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_sub(const benchmark_data_t *data)
+static void bench_float_sub(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *left_inputs = data->float_inputs;
     volatile const float *right_inputs = data->sum_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += left_inputs[index] - right_inputs[index];
         }
@@ -323,8 +322,9 @@ static void bench_float_sub(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_lerp(const benchmark_data_t *data)
+static void bench_fixed_lerp(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *left_inputs = data->fixed_inputs;
     volatile const fix32_t *right_inputs = data->sum_fixed_inputs;
@@ -332,7 +332,7 @@ static void bench_fixed_lerp(const benchmark_data_t *data)
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_lerp(left_inputs[index], right_inputs[index],
                                    amounts[index]);
@@ -342,8 +342,9 @@ static void bench_fixed_lerp(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_lerp(const benchmark_data_t *data)
+static void bench_float_lerp(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *left_inputs = data->float_inputs;
     volatile const float *right_inputs = data->sum_inputs;
@@ -351,7 +352,7 @@ static void bench_float_lerp(const benchmark_data_t *data)
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const float left = left_inputs[index];
             const float right = right_inputs[index];
@@ -362,15 +363,16 @@ static void bench_float_lerp(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_mul(const benchmark_data_t *data)
+static void bench_fixed_mul(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *left_inputs = data->fixed_inputs;
     volatile const fix32_t *right_inputs = data->sum_fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t product =
                 fix32_mul(left_inputs[index], right_inputs[index]);
@@ -381,15 +383,16 @@ static void bench_fixed_mul(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_mul(const benchmark_data_t *data)
+static void bench_float_mul(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *left_inputs = data->float_inputs;
     volatile const float *right_inputs = data->sum_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const float product = left_inputs[index] * right_inputs[index];
             checksum += product;
@@ -399,15 +402,16 @@ static void bench_float_mul(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_mul_by_int(const benchmark_data_t *data)
+static void bench_fixed_mul_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     volatile const int32_t *multipliers = data->small_int_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_mul_by_int(inputs[index], multipliers[index]);
         }
@@ -416,15 +420,16 @@ static void bench_fixed_mul_by_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_mul_by_int(const benchmark_data_t *data)
+static void bench_float_mul_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     volatile const int32_t *multipliers = data->small_int_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += inputs[index] * (float)multipliers[index];
         }
@@ -433,14 +438,15 @@ static void bench_float_mul_by_int(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_reciprocal_by_int(const benchmark_data_t *data)
+static void bench_fixed_reciprocal_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const int32_t *inputs = data->int_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_reciprocal_by_int(inputs[index]);
         }
@@ -449,14 +455,15 @@ static void bench_fixed_reciprocal_by_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_reciprocal_by_int(const benchmark_data_t *data)
+static void bench_float_reciprocal_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const int32_t *inputs = data->int_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_round_from_float(1.0f / (float)inputs[index]);
         }
@@ -465,14 +472,15 @@ static void bench_float_reciprocal_by_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_reciprocal(const benchmark_data_t *data)
+static void bench_fixed_reciprocal(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t reciprocal = fix32_reciprocal(inputs[index]);
             checksum += reciprocal;
@@ -482,14 +490,15 @@ static void bench_fixed_reciprocal(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_reciprocal(const benchmark_data_t *data)
+static void bench_float_reciprocal(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t reciprocal =
                 fix32_round_from_float(1.0f / inputs[index]);
@@ -500,15 +509,16 @@ static void bench_float_reciprocal(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_div_by_int(const benchmark_data_t *data)
+static void bench_fixed_div_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     volatile const int32_t *divisors = data->int_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_div_by_int(inputs[index], divisors[index]);
         }
@@ -517,15 +527,16 @@ static void bench_fixed_div_by_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_div_by_int(const benchmark_data_t *data)
+static void bench_float_div_by_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     volatile const int32_t *divisors = data->int_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += inputs[index] / (float)divisors[index];
         }
@@ -534,19 +545,21 @@ static void bench_float_div_by_int(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_div(const benchmark_data_t *data)
+static void bench_fixed_div(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *left_inputs = data->fixed_inputs;
     volatile const fix32_t *divisor_inputs = data->fixed_div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
-            const fix32_t numerator =
-                (left_inputs[index] < 0) ? -left_inputs[index]
-                                         : left_inputs[index];
+            fix32_t numerator = left_inputs[index];
+#if FIX32_USE_SIGNED_SHIFT_DIV
+            numerator = (numerator < 0) ? -numerator : numerator;
+#endif
             const fix32_t quotient =
                 fix32_div(numerator, divisor_inputs[index]);
             checksum += quotient;
@@ -556,19 +569,21 @@ static void bench_fixed_div(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_div(const benchmark_data_t *data)
+static void bench_float_div(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *left_inputs = data->float_inputs;
     volatile const float *divisor_inputs = data->div_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
-            const float numerator =
-                (left_inputs[index] < 0.0f) ? -left_inputs[index]
-                                            : left_inputs[index];
+            float numerator = left_inputs[index];
+#if FIX32_USE_SIGNED_SHIFT_DIV
+            numerator = (numerator < 0.0f) ? -numerator : numerator;
+#endif
             const float quotient = numerator / divisor_inputs[index];
             checksum += quotient;
         }
@@ -577,15 +592,16 @@ static void bench_float_div(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_mul_reciprocal(const benchmark_data_t *data)
+static void bench_fixed_mul_reciprocal(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *left_inputs = data->fixed_inputs;
     volatile const fix32_t *reciprocal_inputs = data->fixed_reciprocals;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const fix32_t product =
                 fix32_mul(left_inputs[index], reciprocal_inputs[index]);
@@ -596,15 +612,16 @@ static void bench_fixed_mul_reciprocal(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_mul_reciprocal(const benchmark_data_t *data)
+static void bench_float_mul_reciprocal(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *left_inputs = data->float_inputs;
     volatile const float *reciprocal_inputs = data->float_reciprocals;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             const float product = left_inputs[index] * reciprocal_inputs[index];
             checksum += product;
@@ -614,14 +631,15 @@ static void bench_float_mul_reciprocal(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_trunc_to_int(const benchmark_data_t *data)
+static void bench_fixed_trunc_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_trunc_to_int(inputs[index]);
         }
@@ -630,14 +648,15 @@ static void bench_fixed_trunc_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_trunc_to_int(const benchmark_data_t *data)
+static void bench_float_trunc_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += (int32_t)inputs[index];
         }
@@ -646,14 +665,15 @@ static void bench_float_trunc_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_ceil_to_int(const benchmark_data_t *data)
+static void bench_fixed_ceil_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_ceil_to_int(inputs[index]);
         }
@@ -662,14 +682,15 @@ static void bench_fixed_ceil_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_floor_to_int(const benchmark_data_t *data)
+static void bench_fixed_floor_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_floor_to_int(inputs[index]);
         }
@@ -678,14 +699,15 @@ static void bench_fixed_floor_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_ceil_to_int(const benchmark_data_t *data)
+static void bench_float_ceil_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_ceil_to_int(inputs[index]);
         }
@@ -694,14 +716,15 @@ static void bench_float_ceil_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_floor_to_int(const benchmark_data_t *data)
+static void bench_float_floor_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_floor_to_int(inputs[index]);
         }
@@ -710,14 +733,15 @@ static void bench_float_floor_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_floor_value(const benchmark_data_t *data)
+static void bench_fixed_floor_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_floor(inputs[index]);
         }
@@ -726,14 +750,15 @@ static void bench_fixed_floor_value(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_floor_value(const benchmark_data_t *data)
+static void bench_float_floor_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_floor_to_float(inputs[index]);
         }
@@ -742,14 +767,15 @@ static void bench_float_floor_value(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_ceil_value(const benchmark_data_t *data)
+static void bench_fixed_ceil_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_ceil(inputs[index]);
         }
@@ -758,14 +784,15 @@ static void bench_fixed_ceil_value(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_ceil_value(const benchmark_data_t *data)
+static void bench_float_ceil_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_ceil_to_float(inputs[index]);
         }
@@ -774,14 +801,15 @@ static void bench_float_ceil_value(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_round_value(const benchmark_data_t *data)
+static void bench_fixed_round_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_round(inputs[index]);
         }
@@ -790,14 +818,15 @@ static void bench_fixed_round_value(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_round_value(const benchmark_data_t *data)
+static void bench_float_round_value(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_round_to_float(inputs[index]);
         }
@@ -806,14 +835,15 @@ static void bench_float_round_value(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_to_float(const benchmark_data_t *data)
+static void bench_fixed_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_to_float(inputs[index]);
         }
@@ -822,14 +852,15 @@ static void bench_fixed_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_ceil_to_float(const benchmark_data_t *data)
+static void bench_fixed_ceil_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_ceil_to_float(inputs[index]);
         }
@@ -838,14 +869,15 @@ static void bench_fixed_ceil_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_floor_to_float(const benchmark_data_t *data)
+static void bench_fixed_floor_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_floor_to_float(inputs[index]);
         }
@@ -854,14 +886,15 @@ static void bench_fixed_floor_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_float_to_float(const benchmark_data_t *data)
+static void bench_float_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += inputs[index];
         }
@@ -870,14 +903,15 @@ static void bench_float_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_float_ceil_to_float(const benchmark_data_t *data)
+static void bench_float_ceil_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_ceil_to_float(inputs[index]);
         }
@@ -886,14 +920,15 @@ static void bench_float_ceil_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_float_floor_to_float(const benchmark_data_t *data)
+static void bench_float_floor_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_floor_to_float(inputs[index]);
         }
@@ -902,14 +937,15 @@ static void bench_float_floor_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_to_double(const benchmark_data_t *data)
+static void bench_fixed_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_to_double(inputs[index]);
         }
@@ -918,14 +954,15 @@ static void bench_fixed_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_floor_to_double(const benchmark_data_t *data)
+static void bench_fixed_floor_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_floor_to_double(inputs[index]);
         }
@@ -934,14 +971,15 @@ static void bench_fixed_floor_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_double_floor_to_double(const benchmark_data_t *data)
+static void bench_double_floor_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += (double)double_floor_to_int(inputs[index]);
         }
@@ -950,14 +988,15 @@ static void bench_double_floor_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_ceil_to_double(const benchmark_data_t *data)
+static void bench_fixed_ceil_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_ceil_to_double(inputs[index]);
         }
@@ -966,14 +1005,15 @@ static void bench_fixed_ceil_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_double_ceil_to_double(const benchmark_data_t *data)
+static void bench_double_ceil_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += (double)double_ceil_to_int(inputs[index]);
         }
@@ -982,14 +1022,15 @@ static void bench_double_ceil_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_round_to_double(const benchmark_data_t *data)
+static void bench_fixed_round_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_round_to_double(inputs[index]);
         }
@@ -998,14 +1039,15 @@ static void bench_fixed_round_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_double_round_to_double(const benchmark_data_t *data)
+static void bench_double_round_to_double(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const double *inputs = data->double_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += (double)double_round_to_int(inputs[index]);
         }
@@ -1014,14 +1056,15 @@ static void bench_double_round_to_double(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_fixed_round_to_int(const benchmark_data_t *data)
+static void bench_fixed_round_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_round_to_int(inputs[index]);
         }
@@ -1030,14 +1073,15 @@ static void bench_fixed_round_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_fixed_round_to_float(const benchmark_data_t *data)
+static void bench_fixed_round_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const fix32_t *inputs = data->fixed_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += fix32_round_to_float(inputs[index]);
         }
@@ -1046,14 +1090,15 @@ static void bench_fixed_round_to_float(const benchmark_data_t *data)
     g_float_sink = checksum;
 }
 
-static void bench_float_round_to_int(const benchmark_data_t *data)
+static void bench_float_round_to_int(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     int64_t checksum = 0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_round_to_int(inputs[index]);
         }
@@ -1062,14 +1107,15 @@ static void bench_float_round_to_int(const benchmark_data_t *data)
     g_int_sink = checksum;
 }
 
-static void bench_float_round_to_float(const benchmark_data_t *data)
+static void bench_float_round_to_float(const void *context, size_t repeat_count)
 {
+    const benchmark_data_t *data = context;
     double checksum = 0.0;
     volatile const float *inputs = data->float_inputs;
     size_t repeat;
     size_t index;
 
-    for (repeat = 0; repeat < data->repeat_count; ++repeat) {
+    for (repeat = 0; repeat < repeat_count; ++repeat) {
         for (index = 0; index < data->sample_count; ++index) {
             checksum += benchmark_float_round_to_float(inputs[index]);
         }
@@ -1140,13 +1186,17 @@ void benchmark_print_scalar_results(const benchmark_data_t *data)
            "operation", "fixed ns/op", "base ns/op", "fixed/base");
 
     for (index = 0; index < benchmark_count; ++index) {
-        const double fixed_seconds = run_benchmark(pairs[index].fixed_fn, data);
-        const double float_seconds = run_benchmark(pairs[index].float_fn, data);
+        const benchmark_measurement_t measurement =
+            benchmark_measure_pair(pairs[index].fixed_fn, pairs[index].float_fn,
+                                   data, data->repeat_count);
+        const double fixed_seconds = measurement.fixed_seconds;
+        const double float_seconds = measurement.float_seconds;
         const double fixed_ns = (fixed_seconds * 1.0e9) / operations;
         const double float_ns = (float_seconds * 1.0e9) / operations;
         const double ratio = (float_ns > 0.0) ? (fixed_ns / float_ns) : 0.0;
 
         printf("%-24s %14.2f %14.2f %12.2f\n",
                pairs[index].label, fixed_ns, float_ns, ratio);
+        benchmark_print_spread(&measurement);
     }
 }

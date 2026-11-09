@@ -25,11 +25,8 @@
 #include "common.h"
 
 #include <stdio.h>
-#include <time.h>
 
 #define DDA_CANVAS_STRIDE 4099
-
-typedef void (*line_benchmark_fn)(size_t line_length, size_t repeat_count);
 
 static void line_endpoints(size_t line_length, int32_t *start_x, int32_t *start_y,
                            int32_t *end_x, int32_t *end_y)
@@ -55,21 +52,9 @@ static size_t line_point_count(size_t line_length)
                                      benchmark_int_abs(end_y - start_y)) + 1);
 }
 
-static double run_line_benchmark(line_benchmark_fn fn, size_t line_length,
-                                 size_t repeat_count)
+static void bench_fixed_dda_line(const void *context, size_t repeat_count)
 {
-    const clock_t start = clock();
-    const double ticks_per_second = (double)CLOCKS_PER_SEC;
-    clock_t finish;
-
-    fn(line_length, repeat_count);
-    finish = clock();
-
-    return (double)(finish - start) / ticks_per_second;
-}
-
-static void bench_fixed_dda_line(size_t line_length, size_t repeat_count)
-{
+    const size_t line_length = *(const size_t *)context;
     int32_t start_x;
     int32_t start_y;
     int32_t end_x;
@@ -108,8 +93,9 @@ static void bench_fixed_dda_line(size_t line_length, size_t repeat_count)
     g_int_sink = checksum;
 }
 
-static void bench_float_dda_line(size_t line_length, size_t repeat_count)
+static void bench_float_dda_line(const void *context, size_t repeat_count)
 {
+    const size_t line_length = *(const size_t *)context;
     int32_t start_x;
     int32_t start_y;
     int32_t end_x;
@@ -164,10 +150,11 @@ void benchmark_print_line_results(size_t repeat_count)
         const size_t point_count = line_point_count(line_length);
         const double operations =
             (double)point_count * (double)repeat_count;
-        const double fixed_seconds =
-            run_line_benchmark(bench_fixed_dda_line, line_length, repeat_count);
-        const double float_seconds =
-            run_line_benchmark(bench_float_dda_line, line_length, repeat_count);
+        const benchmark_measurement_t measurement =
+            benchmark_measure_pair(bench_fixed_dda_line, bench_float_dda_line,
+                                   &line_length, repeat_count);
+        const double fixed_seconds = measurement.fixed_seconds;
+        const double float_seconds = measurement.float_seconds;
         const double fixed_ns = (fixed_seconds * 1.0e9) / operations;
         const double float_ns = (float_seconds * 1.0e9) / operations;
         const double ratio = (float_ns > 0.0) ? (fixed_ns / float_ns) : 0.0;
@@ -175,5 +162,6 @@ void benchmark_print_line_results(size_t repeat_count)
         printf("%-12lu %12lu %14.2f %14.2f %12.2f\n",
                (unsigned long)line_length, (unsigned long)point_count,
                fixed_ns, float_ns, ratio);
+        benchmark_print_spread(&measurement);
     }
 }

@@ -45,15 +45,14 @@ Defaults:
 
 ## Measurement method
 
-The benchmark uses `clock()` and reports CPU time.
-
-There are four timing helpers:
-
-- `run_benchmark()` for scalar rows
-- `run_line_benchmark()` for the DDA line cases
-- `run_sprite_benchmark()` for the sprite scaler cases
-- `run_rotoscale_benchmark()` for the sprite roto-scaler cases; the benchmark prints
-  both incremental and direct inverse-mapping tables from the same helper
+All sections use `benchmark_measure_pair()` and `clock()` to measure CPU time.
+Each pair receives a one-repeat warm-up followed by five measured trials using
+the requested repeat count. The fixed and float execution order alternates
+between trials. Tables show median times and the ratio of those medians; the
+line beneath each row reports the maximum minus minimum trial time in
+microseconds. Increase the repeat count when clock resolution or variability
+is significant relative to a trial. Five trials take about five times as long
+as the old single-trial measurement.
 
 The output is normalized like this:
 
@@ -82,6 +81,12 @@ The shared benchmark module defines:
 
 Each benchmark accumulates a checksum and stores it into one of these sinks at the end.
 
+The original scalar rows deliberately retain volatile loads. Their checksums
+often use different accumulation types on the fixed and float sides, so these
+rows include load, conversion, and checksum costs and do not isolate primitive
+latency. Use the separate multiplication section to examine array throughput
+and dependent arithmetic without those inner-loop checksums.
+
 The small integer and floating-point baseline helpers are `static inline` in
 the shared header so both sides are visible to the optimizer.
 
@@ -99,6 +104,7 @@ The shared benchmark module uses a simple linear congruential generator:
 
 ```c
 state = state * 1664525u + 1013904223u;
+return state >> 8;
 ```
 
 with a fixed seed:
@@ -107,7 +113,11 @@ with a fixed seed:
 0x9e3779b9u
 ```
 
-This keeps runs deterministic for the same build and parameters.
+All consumers use the high 24 bits. The low LCG bits have short cycles that
+correlate with a fixed number of draws per sample, which previously restricted
+divisor signs and parity. Runs remain deterministic for the same build and
+parameters, and the data test verifies coverage of every integer divisor and
+rational denominator in the documented ranges.
 
 ### Generated arrays
 
@@ -172,7 +182,7 @@ sample_count * repeat_count
 | `reciprocal by int` | `fix32_reciprocal_by_int()` | float reciprocal converted to fixed | Integer reciprocal |
 | `reciprocal -> fixed` | `fix32_reciprocal()` | float reciprocal converted to fixed | Fixed reciprocal |
 | `divide by int` | `fix32_div_by_int()` | float-by-int division | Integer division |
-| `divide` | `fix32_div()` | float division | Uses nonnegative numerators so the signed-shift variant stays within its documented domain |
+| `divide` | `fix32_div()` | float division | Exercises both numerator signs by default; uses nonnegative numerators on both sides when `FIX32_USE_SIGNED_SHIFT_DIV=1` |
 | `mul reciprocal` | `fix32_mul()` with a precomputed reciprocal | float multiplication with a reciprocal | Reciprocal reuse |
 | `trunc -> int` | `fix32_trunc_to_int()` | float cast to integer | Truncation toward zero |
 | `ceil -> int` | `fix32_ceil_to_int()` | local float ceil helper | Integer ceiling |
@@ -224,6 +234,23 @@ They answer different questions:
 - `mul reciprocal`: cost of using a reciprocal that was already precomputed and reused
 
 This is useful because a reciprocal path only makes sense as an optimization when the divisor is reused enough times to amortize the reciprocal computation.
+
+## Multiplication throughput and dependency section
+
+`multiply array` reads ordinary input arrays and writes one 32-bit result per
+element on both sides. The kernels use `restrict` pointers and permit compiler
+vectorization. A call through a volatile function pointer preserves every batch
+even with LTO, without volatile element loads. Each side computes a `double`
+checksum of the last output batch after all repetitions. Timings include this
+final checksum and one indirect call per batch; their relative cost decreases
+as the repeat count and sample count increase.
+
+`multiply/add chain` repeatedly evaluates `value = value * factor + 1`, with
+each factor drawn from the existing `[-0.5, 0.5]` array. This keeps intermediate
+values bounded and makes each iteration depend on its predecessor. It measures
+the combined dependent multiply/add operation, including any compiler fusion
+on the float side, rather than isolated multiplication latency. Both sides
+store only the final value into the shared sink.
 
 ## DDA line benchmark section
 

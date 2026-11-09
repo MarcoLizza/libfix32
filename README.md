@@ -51,7 +51,7 @@ A number of configuration macros are available to customize the behavior and per
 - `FIX32_USE_SIGNED_SHIFT_MUL`: enables signed-shift scaling for `fix32_mul()`,
   default `0`
 - `FIX32_USE_SIGNED_SHIFT_DIV`: enables signed left-shift scaling for
-  `fix32_div()`, default `0`
+  `fix32_div()`, default `0`; numerators must be nonnegative
 - `FIX32_USE_64_BIT`: selects wider intermediates for selected operations,
   default `1`
 - `FIX32_INTEGER_BITS`: optional operand-range hint used to auto-select
@@ -81,10 +81,14 @@ make
 ```
 
 This builds the default test and benchmark executables under `build/`.
+Changes to compiler, preprocessor, optimization, or linker flags automatically
+rebuild the executables. Use `BUILD_DIR` to keep separate configurations.
 
 ## Test
 
-A comprehensive test suite is included under `tests/`. The tests cover the full range of operations and configurations, including edge cases and error handling.
+The test suite is included under `src/test/`. It covers arithmetic and conversion
+policies, floating-point rounding boundaries, and integer limits inside the
+library's unchecked input contract.
 
 To run the tests, simply execute:
 
@@ -92,7 +96,17 @@ To run the tests, simply execute:
 make test
 ```
 
-The test target runs the full suite, including the configuration variants for portable floor/ceil handling, no-rounding mode, 32-bit arithmetic, and the signed-shift multiply/divide paths.
+The test target exercises external and static inline usage, portable floor/ceil,
+no-rounding mode, narrow arithmetic, and signed-shift multiplication/division. Boundary
+tests run at every fractional-bit count from 1 through 30 in both wide and narrow
+profiles. A benchmark data test checks coverage of both signs and every divisor
+in the documented integer ranges.
+
+Integer rounding uses unsigned 32-bit intermediates and handles every raw value,
+including `INT32_MIN`, in both profiles. Division scales by multiplication by
+default. `FIX32_USE_SIGNED_SHIFT_DIV=1` selects signed left-shift scaling for
+nonnegative numerators; the scaled numerator must fit the selected arithmetic
+path. The test suite exercises this option with both wide and narrow intermediates.
 
 ## Benchmark
 
@@ -107,9 +121,25 @@ The benchmark compares fixed-point and floating-point work for scalar math, line
 
 The `run-benchmark` target captures the benchmark output under `build/` and regenerates the summary graph used below.
 
+Timings report the median of five trials after a warm-up, with alternating
+fixed/float execution order and the trial range printed beneath each row. The
+multiplication section separates ordinary array throughput from a dependent
+multiply/add chain. Build the external-function configuration, optionally with
+LTO, to compare it with the default inline benchmark:
+
+```sh
+make benchmark BUILD_DIR=build/external BENCH_CPPFLAGS=
+make benchmark BUILD_DIR=build/lto BENCH_CPPFLAGS= BENCH_CFLAGS="-O3 -flto"
+```
+
 The `run-benchmark-32-bit` target builds a restricted-range profile with `FIX32_USE_64_BIT=0` and 8 fractional bits. It is intended for checking whether the narrow arithmetic path is worth profiling on a constrained target; it is not the canonical benchmark report.
 
-The current report is summarized below with fixed-point time divided by the float or base time. Lower ratios favor the fixed-point path, and `1.0` is parity. The workload rows are averages from the report; the scalar rows are representative operations from the same run.
+The November 7, 2026 report below uses the current implementation and benchmark
+method. The graph shows fixed-point time divided by float or base time; lower
+ratios favor fixed point, and `1.0` is parity. Workload bars are unweighted means
+of the case ratios. Scalar and multiplication bars show individual rows. See
+the report for build details, trial ranges, release validation, and the separate
+configuration comparisons.
 
 ![Benchmark ratio summary](docs/benchmark_summary.svg)
 

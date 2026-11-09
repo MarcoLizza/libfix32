@@ -92,6 +92,12 @@ void test_arithmetic(void)
                    fix32_div(fix32_from_int(5), fix32_from_int(-2)));
     TEST_EXPECT_EQ(FIX32_ONE / 3,
                    fix32_div(fix32_from_int(1), fix32_from_int(3)));
+#if !FIX32_USE_SIGNED_SHIFT_DIV
+    TEST_EXPECT_EQ(fix32_from_float(-2.5f),
+                   fix32_div(fix32_from_int(-5), fix32_from_int(2)));
+    TEST_EXPECT_EQ(fix32_from_float(2.5f),
+                   fix32_div(fix32_from_int(-5), fix32_from_int(-2)));
+#endif
 
     TEST_EXPECT_EQ(FIX32_ONE / 4, fix32_reciprocal_by_int(4));
     TEST_EXPECT_EQ(-(FIX32_ONE / 2), fix32_reciprocal_by_int(-2));

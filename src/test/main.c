@@ -22,7 +22,9 @@
  * SOFTWARE.
  */
 
+#if !defined(FIX32_STATIC_INLINE)
 #define FIX32_IMPLEMENTATION
+#endif
 #include "test.h"
 
 #include <stdio.h>
@@ -52,7 +54,7 @@ void test_expect_float_near(float expected, float actual, float tolerance,
 
     ++g_test_assertions;
 
-    if (difference > tolerance) {
+    if (!(difference <= tolerance)) {
         fprintf(stderr, "%s:%d: %s: expected %.9g +/- %.9g, got %.9g\n",
                 file, line, expression, (double)expected, (double)tolerance,
                 (double)actual);
@@ -69,7 +71,7 @@ void test_expect_double_near(double expected, double actual, double tolerance,
 
     ++g_test_assertions;
 
-    if (difference > tolerance) {
+    if (!(difference <= tolerance)) {
         fprintf(stderr, "%s:%d: %s: expected %.17g +/- %.17g, got %.17g\n",
                 file, line, expression, expected, tolerance, actual);
         ++g_test_failures;
@@ -78,9 +80,12 @@ void test_expect_double_near(double expected, double actual, double tolerance,
 
 int main(void)
 {
+#if !defined(TEST_BOUNDARIES_ONLY)
     test_conversions();
     test_arithmetic();
     test_rounding();
+#endif
+    test_boundaries();
 
     if (g_test_failures != 0u) {
         fprintf(stderr, "%u of %u assertions failed\n",

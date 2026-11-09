@@ -90,11 +90,11 @@ The explicit rounding constructors:
 - `fix32_round_from_float()`
 - `fix32_round_from_double()`
 
-add or subtract half a raw unit before the cast:
-
-```c
-scaled + ((scaled >= 0) ? 0.5 : -0.5)
-```
+truncate the scaled value, compare its fractional remainder against `0.5` and
+`-0.5`, and adjust the raw integer by one when needed. Adding a half-unit bias
+in floating point can incorrectly change an exact raw integer or round a value
+immediately below a tie up to that tie. Comparing the remainder avoids both
+errors. The truncated intermediate and final rounded result must fit `fix32_t`.
 
 Rationale:
 
@@ -144,6 +144,12 @@ Rationale:
   positive infinity respectively.
 - `fix32_round_to_int()` uses the same half-away-from-zero policy as the
   explicit rounding constructors.
+
+Integer rounding obtains the unsigned magnitude, adds `FIX32_HALF`, shifts by
+the fractional-bit count, and restores the sign. Unsigned subtraction handles
+`INT32_MIN`, and the bias fits in `uint32_t` at every supported scale. This
+avoids a 64-bit temporary and accepts the full raw range in either arithmetic
+profile.
 
 ### `fixed -> float` and `double`
 
@@ -418,7 +424,6 @@ is used by:
 - retaining the full product in `fix32_mul()` until after scaling
 - `fix32_lerp()`
 - `fix32_mul_by_int()`
-- the temporary in `fix32_round_to_int()`
 - the temporary in `fix32_round()`
 
 When `FIX32_USE_64_BIT=0`, the active helper definitions avoid `int64_t` and
@@ -462,30 +467,22 @@ Rationale:
 - It avoids forcing the caller to hide every divide inside an ad hoc reciprocal-multiply pattern.
 - Multiplication by the compile-time power-of-two scale is normally optimized to the same machine operation as an explicit left shift.
 
-The original signed-shift scaling path can be enabled before including the header:
+The optional signed-shift scaling path can be enabled before including the header:
 
 ```c
 #define FIX32_USE_SIGNED_SHIFT_DIV 1
 ```
 
-This path can be benchmarked with:
+It computes `((int64_t)numerator << FIX32_FRACTIONAL_BITS) / denominator` in
+the wide profile, or uses a `fix32_t` scaled numerator in the narrow profile.
+Every numerator passed to `fix32_div()` must be nonnegative, since left-shifting
+a negative signed value has undefined behavior in C99. The scaled numerator
+must also fit the selected intermediate type. The default value is `0`.
 
-```sh
-make run-benchmark-shift-div
-```
-
-The scalar division row uses nonnegative numerators so this benchmark does not
-invoke the signed-left-shift path's undefined behavior.
-
-That path computes:
-
-```c
-((int64_t)numerator << FIX32_FRACTIONAL_BITS) / denominator
-```
-
-Left-shifting a negative signed value is undefined behavior in C99. This option
-is valid only when every numerator passed to `fix32_div()` is nonnegative. The
-default value is `0`.
+Build or run this variant with `make benchmark-shift-div` or
+`make run-benchmark-shift-div`. Its scalar division row uses nonnegative
+numerators on both sides of the comparison. The default benchmark exercises
+both numerator signs.
 
 Rounding detail:
 

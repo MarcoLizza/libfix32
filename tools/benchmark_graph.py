@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 SECTION_TITLES = {
     "scalar benchmarks": "scalar",
+    "multiply throughput and dependency benchmarks": "multiply",
     "DDA line benchmarks": "line",
     "sprite scaler benchmarks": "sprite",
     "rotoscaler benchmarks (incremental inverse mapping)": "rotoscale_incremental",
@@ -134,11 +135,11 @@ def mean_ratio(results: list[BenchmarkResult], section: str) -> float:
     return sum(ratios) / len(ratios)
 
 
-def scalar_ratio(results: list[BenchmarkResult], label: str) -> float:
+def result_ratio(results: list[BenchmarkResult], section: str, label: str) -> float:
     for result in results:
-        if result.section == "scalar" and result.label == label:
+        if result.section == section and result.label == label:
             return result.ratio
-    raise ValueError(f"no scalar benchmark row found for {label!r}")
+    raise ValueError(f"no {section} benchmark row found for {label!r}")
 
 
 def build_graph_rows(
@@ -149,12 +150,17 @@ def build_graph_rows(
         for label, section in WORKLOAD_SUMMARY_ROWS
     ]
     scalar_rows = [
-        GraphRow(label, scalar_ratio(results, label))
+        GraphRow(label, result_ratio(results, "scalar", label))
         for label in SCALAR_SUMMARY_ROWS
+    ]
+    multiply_rows = [
+        GraphRow(label, result_ratio(results, "multiply", label))
+        for label in ("multiply array", "multiply/add chain")
     ]
     return [
         ("Workloads, mean ratio", workload_rows),
         ("Scalar rows, representative operations", scalar_rows),
+        ("Multiplication, array throughput and dependent work", multiply_rows),
     ]
 
 
@@ -331,7 +337,7 @@ def render_svg(
             *bottom_axis,
             (
                 f'  <text x="40" y="{footer_y}" class="note">'
-                f'Generated from fixed/base ratios.</text>'
+                f'Source: {source}</text>'
             ),
             "</svg>",
             "",

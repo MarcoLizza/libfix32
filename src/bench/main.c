@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 
+#if !defined(FIX32_STATIC_INLINE)
+#define FIX32_IMPLEMENTATION
+#endif
 #include "common.h"
 
 #include <stdio.h>
@@ -61,7 +64,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    printf("timing: median of %u trials, one warm-up, alternating order\n",
+           BENCHMARK_TRIAL_COUNT);
     benchmark_print_scalar_results(&data);
+    benchmark_print_multiply_results(&data);
     benchmark_print_line_results(repeat_count);
     benchmark_print_sprite_results(repeat_count);
     benchmark_print_rotoscale_results(repeat_count);

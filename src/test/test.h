@@ -54,5 +54,6 @@ void test_expect_double_near(double expected, double actual, double tolerance,
 void test_conversions(void);
 void test_arithmetic(void);
 void test_rounding(void);
+void test_boundaries(void);
 
 #endif

@@ -32,6 +32,16 @@
 
 #define DEFAULT_SAMPLE_COUNT 16384u
 #define DEFAULT_REPEAT_COUNT 2000u
+#define BENCHMARK_TRIAL_COUNT 5u
+
+typedef void (*benchmark_fn)(const void *context, size_t repeat_count);
+
+typedef struct benchmark_measurement {
+    double fixed_seconds;
+    double float_seconds;
+    double fixed_spread;
+    double float_spread;
+} benchmark_measurement_t;
 
 typedef struct benchmark_data {
     size_t sample_count;
@@ -52,6 +62,8 @@ typedef struct benchmark_data {
     fix32_t *fixed_lerp_inputs;
     fix32_t *fixed_div_inputs;
     fix32_t *fixed_reciprocals;
+    fix32_t *fixed_results;
+    float *float_results;
 } benchmark_data_t;
 
 extern volatile int64_t g_int_sink;
@@ -61,6 +73,11 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
                         size_t repeat_count);
 void benchmark_data_destroy(benchmark_data_t *data);
 int benchmark_parse_size_arg(const char *text, size_t *value);
+benchmark_measurement_t benchmark_measure_pair(benchmark_fn fixed_fn,
+                                               benchmark_fn float_fn,
+                                               const void *context,
+                                               size_t repeat_count);
+void benchmark_print_spread(const benchmark_measurement_t *measurement);
 
 static inline int32_t benchmark_int_abs(int32_t value)
 {
@@ -116,6 +133,7 @@ static inline float benchmark_float_round_to_float(float value)
 }
 
 void benchmark_print_scalar_results(const benchmark_data_t *data);
+void benchmark_print_multiply_results(const benchmark_data_t *data);
 void benchmark_print_line_results(size_t repeat_count);
 void benchmark_print_sprite_results(size_t repeat_count);
 void benchmark_print_rotoscale_results(size_t repeat_count);

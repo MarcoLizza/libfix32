@@ -1,136 +1,228 @@
 # Benchmarks (report)
 
-This report captures the current default benchmark suite, including all scalar
-API benchmarks and the DDA, sprite-scaler, and rotoscaler workloads. The
-workload results measure coordinate arithmetic only; they do not include
-framebuffer access, texture sampling, blending, clipping, or other renderer
-costs.
+This report records the current fix32 0.3.0 implementation and benchmark suite
+on November 7, 2026. It includes the corrected rounded constructors, unsigned
+integer rounding, high-bit input generation, repeated timing trials, and the
+optional `FIX32_USE_SIGNED_SHIFT_DIV` path. The input and measurement changes
+make this a new baseline rather than a controlled comparison with the previous
+report.
 
 ## Run configuration
 
-The measurements were recorded on June 27, 2026 with:
+Measurements used an AMD Ryzen 7 8845HS, Linux 7.0.0-38-generic on x86-64, and
+GCC 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1). The CPU governor was `performance`,
+with frequency boost enabled. Benchmark processes ran sequentially, pinned to
+logical CPU 2; frequency was not locked and the host was not isolated from
+other system activity.
 
-- fix32 0.3.0
-- AMD Ryzen 7 8845HS
-- Ubuntu x86-64, Linux 6.17.0-35-generic
-- GCC 13.3.0
-- C99
-- `-O3` as the effective optimization level
+The canonical build uses C99, `-Wall -Wextra -Wpedantic`, `CFLAGS=-O2`, and
+`BENCH_CFLAGS=-O3`, making `-O3` the effective optimization level. It enables
+`FIX32_STATIC_INLINE` and uses the compiler's default architecture target,
+without `-march=native`, `-ffast-math`, or LTO. The numeric configuration is:
 
-Build and execution:
+| Macro | Value |
+| --- | --- |
+| `FIX32_FRACTIONAL_BITS` | `16` |
+| `FIX32_USE_64_BIT` | `1` |
+| `FIX32_USE_ARITHMETIC_SHIFT_FLOOR` | `1` |
+| `FIX32_USE_SIGNED_SHIFT_MUL` | `0` |
+| `FIX32_USE_SIGNED_SHIFT_DIV` | `0` |
+
+The sample count is 8192 and the repeat count is 100. Each scalar and
+multiplication row therefore measures 819200 operations per trial. Graphics
+rows use 100 repetitions of their displayed pixel count per trial.
+
+Every fixed/float pair receives a one-repeat warm-up and five measured trials,
+alternating execution order. Tables show the median time on each side and
+the ratio of those medians. The line beneath each row records the maximum
+minus minimum trial time. Ratios use the unrounded timings, so dividing the
+displayed two-decimal times can give a slightly different ratio.
+
+The canonical run and graph can be reproduced on this host with:
 
 ```sh
-make -B benchmark CFLAGS="-O2" BENCH_CFLAGS="-O3"
-./build/benchmark 8192 100
+make -B -j4 all test
+taskset -c 2 ./build/benchmark 8192 100 > build/benchmark-output.txt
+python3 tools/benchmark_graph.py build/benchmark-output.txt \
+    -o docs/benchmark_summary.svg \
+    --source-label "docs/benchmark_report.md (2026-11-07)"
 ```
 
-Parameters:
+## Release validation
 
-- `sample-count = 8192`
-- `repeat-count = 100`
-- `819200` operations per scalar row
+All 69 test executables passed in each of the following builds. Each run
+includes 68 arithmetic/conversion executables with 5,447,097 counted
+assertions, plus the benchmark divisor-coverage and trial-order test.
 
-The default library configuration was:
+| Build | Result |
+| --- | --- |
+| Default `-O2` | Passed |
+| `-O3 -flto -Werror` | Passed |
+| `-O1 -g -fsanitize=undefined,float-cast-overflow -fno-sanitize-recover=all` | Passed |
+| `-O1 -g -fsanitize=address,undefined,float-cast-overflow -fno-sanitize-recover=all` | Passed |
 
-- `FIX32_FRACTIONAL_BITS = 16`
-- `FIX32_USE_64_BIT = 1`
-- `FIX32_USE_ARITHMETIC_SHIFT_FLOOR = 1`
-- `FIX32_USE_SIGNED_SHIFT_MUL = 0`
-- `FIX32_USE_SIGNED_SHIFT_DIV = 0`
+The suite covers external and static inline usage, portable floor/ceil,
+no-rounding mode, signed-shift multiplication, and signed-shift division with
+both wide and narrow intermediates. Boundary tests exercise fractional-bit
+counts 1 through 30 in both arithmetic profiles. Signed-shift division tests
+keep numerators nonnegative, as required by that option's input contract.
 
-The benchmark prepares shared fixed-point inputs with
-`fix32_round_from_float()`. The scalar conversion rows separately measure both
-the truncating and rounding constructors.
+C++11 smoke checks also passed for C-linkage external functions and static
+inline use, with signed-shift division enabled in both wide and narrow
+profiles. These checks and all timing runs were performed on x86-64; narrow
+intermediates were exercised on this host rather than on native 32-bit or
+embedded hardware.
 
-The Makefile also provides `benchmark-shift-mul` and `benchmark-shift-div` for
-the optional signed-shift implementations. Their results are not mixed into
-this default-configuration report.
+Equivalent instrumented test builds can be run with:
 
-This is one benchmark invocation using the suite's `clock()`-based CPU-time
-measurement. Small differences should be expected between runs.
-
-The fixed and floating-point rounding helpers are both inline-visible to the
-compiler; the benchmark build enables `FIX32_STATIC_INLINE` for the fixed-point
-header. After conversion to integer sample coordinates, the DDA, scaler, and
-rotoscaler paths also use the same `int64_t` checksum operation.
+```sh
+make -j4 test BUILD_DIR=build/test-lto CFLAGS="-O3 -flto -Werror"
+make -j4 test BUILD_DIR=build/test-ubsan \
+    CFLAGS="-O1 -g -fsanitize=undefined,float-cast-overflow -fno-sanitize-recover=all"
+make -j4 test BUILD_DIR=build/test-asan \
+    CFLAGS="-O1 -g -fsanitize=address,undefined,float-cast-overflow -fno-sanitize-recover=all"
+```
 
 ## Raw output
 
 ```text
+timing: median of 5 trials, one warm-up, alternating order
 scalar benchmarks
 samples=8192 repeats=100 operations-per-case=819200
 operation                   fixed ns/op     base ns/op   fixed/base
-int -> representation              0.41           0.62         0.66
-rational -> fixed                  1.73           1.15         1.51
-float -> fixed trunc               0.52           0.61         0.85
-float -> fixed round               0.97           0.61         1.59
-double -> fixed trunc              0.50           0.61         0.82
-double -> fixed round              0.88           0.62         1.42
-sum                                0.21           0.61         0.34
-subtract                           0.36           0.61         0.59
-lerp                               1.03           0.61         1.67
-multiply                           0.78           0.62         1.25
-multiply by int                    0.43           0.64         0.68
-reciprocal by int                  1.25           0.72         1.73
-reciprocal -> fixed                1.46           0.86         1.70
-divide by int                      1.31           0.62         2.11
-divide                             1.49           0.68         2.18
-mul reciprocal                     0.75           0.62         1.22
-trunc -> int                       0.42           0.49         0.85
-ceil -> int                        0.41           0.60         0.69
-floor -> int                       0.39           0.60         0.64
-round -> int                       0.76           0.85         0.89
-floor -> fixed                     0.35           1.12         0.31
-ceil -> fixed                      0.60           1.17         0.51
-round -> fixed                     0.65           1.42         0.46
-value -> float                     0.63           0.62         1.00
-ceil -> float                      0.62           1.09         0.57
-floor -> float                     0.64           1.05         0.61
-round -> float                     0.71           1.29         0.55
-value -> double                    0.62           0.62         0.99
-ceil -> double                     0.62           0.94         0.66
-floor -> double                    0.64           1.05         0.61
-round -> double                    0.70           1.17         0.60
+int -> representation              0.41           0.62         0.67
+  trial range: fixed 60.000 us, base 12.000 us (max - min)
+rational -> fixed                  1.44           0.79         1.83
+  trial range: fixed 11.000 us, base 3.000 us (max - min)
+float -> fixed trunc               0.50           0.61         0.82
+  trial range: fixed 5.000 us, base 4.000 us (max - min)
+float -> fixed round               0.78           0.62         1.26
+  trial range: fixed 30.000 us, base 9.000 us (max - min)
+double -> fixed trunc              0.51           0.62         0.82
+  trial range: fixed 5.000 us, base 9.000 us (max - min)
+double -> fixed round              0.83           0.62         1.33
+  trial range: fixed 19.000 us, base 7.000 us (max - min)
+sum                                0.24           0.62         0.39
+  trial range: fixed 96.000 us, base 6.000 us (max - min)
+subtract                           0.36           0.63         0.58
+  trial range: fixed 11.000 us, base 8.000 us (max - min)
+lerp                               1.05           0.63         1.67
+  trial range: fixed 15.000 us, base 6.000 us (max - min)
+multiply                           0.76           0.63         1.21
+  trial range: fixed 8.000 us, base 9.000 us (max - min)
+multiply by int                    0.43           0.63         0.69
+  trial range: fixed 12.000 us, base 5.000 us (max - min)
+reciprocal by int                  1.26           1.15         1.09
+  trial range: fixed 8.000 us, base 11.000 us (max - min)
+reciprocal -> fixed                1.46           0.86         1.71
+  trial range: fixed 23.000 us, base 61.000 us (max - min)
+divide by int                      1.31           0.62         2.10
+  trial range: fixed 8.000 us, base 5.000 us (max - min)
+divide                             1.44           0.62         2.34
+  trial range: fixed 9.000 us, base 5.000 us (max - min)
+mul reciprocal                     0.76           0.63         1.20
+  trial range: fixed 19.000 us, base 13.000 us (max - min)
+trunc -> int                       0.42           0.50         0.84
+  trial range: fixed 3.000 us, base 19.000 us (max - min)
+ceil -> int                        0.42           0.61         0.69
+  trial range: fixed 8.000 us, base 10.000 us (max - min)
+floor -> int                       0.36           0.61         0.60
+  trial range: fixed 6.000 us, base 6.000 us (max - min)
+round -> int                       0.68           0.78         0.88
+  trial range: fixed 10.000 us, base 36.000 us (max - min)
+floor -> fixed                     0.42           0.94         0.45
+  trial range: fixed 11.000 us, base 23.000 us (max - min)
+ceil -> fixed                      0.61           0.96         0.63
+  trial range: fixed 11.000 us, base 38.000 us (max - min)
+round -> fixed                     0.63           1.12         0.57
+  trial range: fixed 72.000 us, base 76.000 us (max - min)
+value -> float                     0.63           0.63         1.00
+  trial range: fixed 9.000 us, base 10.000 us (max - min)
+ceil -> float                      0.62           0.93         0.67
+  trial range: fixed 12.000 us, base 75.000 us (max - min)
+floor -> float                     0.66           0.94         0.71
+  trial range: fixed 5.000 us, base 24.000 us (max - min)
+round -> float                     0.73           1.12         0.65
+  trial range: fixed 23.000 us, base 136.000 us (max - min)
+value -> double                    0.63           0.63         1.00
+  trial range: fixed 6.000 us, base 8.000 us (max - min)
+ceil -> double                     0.62           0.81         0.77
+  trial range: fixed 4.000 us, base 29.000 us (max - min)
+floor -> double                    0.66           0.81         0.82
+  trial range: fixed 6.000 us, base 70.000 us (max - min)
+round -> double                    0.65           1.03         0.63
+  trial range: fixed 53.000 us, base 180.000 us (max - min)
+
+multiply throughput and dependency benchmarks
+operation                   fixed ns/op     base ns/op   fixed/base
+multiply array                     0.76           0.09         8.62
+  trial range: fixed 16.000 us, base 3.000 us (max - min)
+multiply/add chain                 1.68           1.26         1.34
+  trial range: fixed 27.000 us, base 23.000 us (max - min)
 
 DDA line benchmarks
 repeats-per-case=100
 line length        pixels fixed ns/pixel float ns/pixel  fixed/float
-32                     33           1.52           1.82         0.83
-128                   129           1.24           1.78         0.70
-512                   513           1.19           1.75         0.68
-2048                 2049           1.18           1.78         0.66
-8192                 8193           1.19           1.76         0.67
+32                     33           0.61           1.82         0.33
+  trial range: fixed 0.000 us, base 1.000 us (max - min)
+128                   129           0.47           1.78         0.26
+  trial range: fixed 0.000 us, base 0.000 us (max - min)
+512                   513           0.43           1.77         0.24
+  trial range: fixed 1.000 us, base 5.000 us (max - min)
+2048                 2049           0.42           1.79         0.23
+  trial range: fixed 8.000 us, base 5.000 us (max - min)
+8192                 8193           0.42           1.76         0.24
+  trial range: fixed 20.000 us, base 28.000 us (max - min)
 
 sprite scaler benchmarks
 repeats-per-case=100
 case                              dest pixels fixed ns/pixel float ns/pixel  fixed/float
-16x16 -> 24x24 (1.5x)                     576           0.17           0.87         0.20
-32x24 -> 64x42 (2.0x/1.75x)              2688           0.15           0.85         0.17
-64x48 -> 160x96 (2.5x/2.0x)             15360           0.15           0.84         0.18
-96x64 -> 288x160 (3.0x/2.5x)            46080           0.15           0.84         0.17
-128x96 -> 512x384 (4.0x)               196608           0.15           0.83         0.17
+16x16 -> 24x24 (1.5x)                     576           0.17           0.89         0.20
+  trial range: fixed 0.000 us, base 1.000 us (max - min)
+32x24 -> 64x42 (2.0x/1.75x)              2688           0.15           0.85         0.18
+  trial range: fixed 1.000 us, base 9.000 us (max - min)
+64x48 -> 160x96 (2.5x/2.0x)             15360           0.15           0.84         0.17
+  trial range: fixed 8.000 us, base 19.000 us (max - min)
+96x64 -> 288x160 (3.0x/2.5x)            46080           0.15           0.83         0.18
+  trial range: fixed 9.000 us, base 21.000 us (max - min)
+128x96 -> 512x384 (4.0x)               196608           0.15           0.84         0.17
+  trial range: fixed 11.000 us, base 81.000 us (max - min)
 160x128 -> 1024x768 (6.4x)             786432           0.15           0.83         0.17
-256x192 -> 2048x1536 (8.0x)           3145728           0.15           0.83         0.18
-512x384 -> 4096x3072 (8.0x)          12582912           0.15           0.84         0.18
-1024x768 -> 8192x6144 (8.0x)         50331648           0.15           0.83         0.18
+  trial range: fixed 30.000 us, base 1890.000 us (max - min)
+256x192 -> 2048x1536 (8.0x)           3145728           0.14           0.83         0.17
+  trial range: fixed 784.000 us, base 1622.000 us (max - min)
+512x384 -> 4096x3072 (8.0x)          12582912           0.15           0.84         0.17
+  trial range: fixed 9156.000 us, base 14398.000 us (max - min)
+1024x768 -> 8192x6144 (8.0x)         50331648           0.14           0.84         0.17
+  trial range: fixed 15355.000 us, base 77707.000 us (max - min)
 
 rotoscaler benchmarks (incremental inverse mapping)
 repeats-per-case=100
 case                                  dest pixels fixed ns/pixel float ns/pixel  fixed/float
-32x32 -> 64x64 @ 15 deg                      4096           0.77           1.34         0.58
-64x48 -> 160x120 @ 30 deg                   19200           0.77           1.34         0.57
-96x64 -> 288x192 @ 45 deg                   55296           0.76           1.35         0.57
-128x96 -> 512x384 @ 22.5 deg               196608           0.77           1.34         0.57
-256x192 -> 1024x768 @ 60 deg               786432           0.76           1.35         0.57
+32x32 -> 64x64 @ 15 deg                      4096           0.75           1.33         0.57
+  trial range: fixed 6.000 us, base 6.000 us (max - min)
+64x48 -> 160x120 @ 30 deg                   19200           0.75           1.32         0.57
+  trial range: fixed 1925.000 us, base 71.000 us (max - min)
+96x64 -> 288x192 @ 45 deg                   55296           0.77           1.35         0.57
+  trial range: fixed 47.000 us, base 55.000 us (max - min)
+128x96 -> 512x384 @ 22.5 deg               196608           0.77           1.35         0.57
+  trial range: fixed 1260.000 us, base 1541.000 us (max - min)
+256x192 -> 1024x768 @ 60 deg               786432           0.77           1.38         0.56
+  trial range: fixed 2210.000 us, base 2485.000 us (max - min)
 
 rotoscaler benchmarks (direct inverse mapping)
 repeats-per-case=100
 case                                  dest pixels fixed ns/pixel float ns/pixel  fixed/float
-32x32 -> 64x64 @ 15 deg                      4096           0.91           0.94         0.97
-64x48 -> 160x120 @ 30 deg                   19200           0.91           0.94         0.96
-96x64 -> 288x192 @ 45 deg                   55296           0.91           0.92         0.99
-128x96 -> 512x384 @ 22.5 deg               196608           0.92           0.91         1.01
-256x192 -> 1024x768 @ 60 deg               786432           0.92           0.90         1.01
+32x32 -> 64x64 @ 15 deg                      4096           0.91           0.93         0.98
+  trial range: fixed 4.000 us, base 4.000 us (max - min)
+64x48 -> 160x120 @ 30 deg                   19200           0.93           0.92         1.01
+  trial range: fixed 8.000 us, base 18.000 us (max - min)
+96x64 -> 288x192 @ 45 deg                   55296           0.93           0.91         1.03
+  trial range: fixed 34.000 us, base 1699.000 us (max - min)
+128x96 -> 512x384 @ 22.5 deg               196608           0.95           0.91         1.04
+  trial range: fixed 313.000 us, base 1635.000 us (max - min)
+256x192 -> 1024x768 @ 60 deg               786432           0.97           0.94         1.03
+  trial range: fixed 9711.000 us, base 6624.000 us (max - min)
 ```
 
 ## Benchmark item reference
@@ -175,246 +267,132 @@ pixel instead of time per scalar operation.
 | `ceil -> double` | Apply fixed-point ceiling and return `double`, compared with double ceiling logic returning `double`. |
 | `floor -> double` | Apply fixed-point floor and return `double`, compared with double floor logic returning `double`. |
 | `round -> double` | Apply fixed-point rounding and return `double`, compared with double rounding logic returning `double`. |
+| `multiply array` | Multiply ordinary input arrays into 32-bit output arrays, with a final batch checksum and an indirect call per batch. |
+| `multiply/add chain` | Repeatedly evaluate a bounded dependent multiply/add recurrence, storing only the final value. |
 | DDA `line length` rows | Run an arithmetic-only DDA line stepper for the requested major-axis length. The `pixels` column is the number of generated points. |
 | Sprite scaler `case` rows | Run nearest-neighbor-style source coordinate generation from the source dimensions to the destination dimensions shown in the label. |
 | Rotoscaler incremental `case` rows | Run affine inverse mapping by incrementally advancing source coordinates across each row and down each column. |
 | Rotoscaler direct `case` rows | Run affine inverse mapping by recomputing the source coordinate from destination `x` and `y` for every pixel. |
 
-## Scalar results
+## Results
 
-The strongest fixed-point scalar results are the operations built from integer
-addition, masking, and integer-facing rounding. Repeated addition costs
-`0.21 ns/op` against `0.61 ns/op` for the float baseline. Fixed-valued floor,
-ceil, and round have ratios from `0.31` to `0.51`.
+The original scalar loops include volatile loads and checksum accumulation.
+Their fixed and float sides sometimes use different checksum types, so these
+rows measure the complete loop rather than isolated primitive latency.
+Fixed addition, masking, and integer-facing rounding remain favorable in this
+run: repeated addition has a fixed/base ratio of `0.39`, fixed-valued floor
+`0.45`, and integer rounding `0.88`. Fixed multiplication has a ratio of
+`1.21`, and fixed division `2.34`. Construction rows compare conversion work
+with an identity baseline; their ratios are not a comparison between two
+equivalent conversion algorithms.
 
-Truncating float and double construction is cheaper than the corresponding
-baseline loop in this run, with ratios of `0.85` and `0.82` for truncating
-construction. Explicit rounded construction is slower than the baseline, with
-ratios of `1.59` for float and `1.42` for double. These
-sub-nanosecond conversion rows are particularly sensitive to compiler
-optimization and should not be treated as standalone architectural evidence.
+The separate multiplication section exposes a larger throughput difference.
+The ordinary array kernels take `0.76 ns/op` for fixed and `0.09 ns/op` for
+float, with a measured ratio of `8.62`. Their inner loops write results without
+per-element checksum accumulation and permit vectorization. The dependent
+multiply/add chain takes `1.68 ns/op` for fixed and `1.26 ns/op` for float,
+a ratio of `1.34`. The chain includes both multiplication and addition;
+it does not isolate multiplication latency. Both rows include the batch or
+final-result overhead described in [benchmark_details.md](benchmark_details.md).
 
-The rational conversion row measures `fix32_from_rational()` against a float
-division of the same integer numerator and denominator followed by truncating
-float-to-fixed conversion. The integer rational path is `1.51` times the float
-baseline in this run because 64-bit scaled integer division is more expensive
-than this compiler's float division and conversion sequence. Its value is
-semantic rather than throughput: it avoids the intermediate float rounding step
-and directly computes the truncated fixed-point ratio.
+The graphics workloads favor fixed point when their inner loops repeatedly
+step coordinates and convert them to integer sample positions. The summary
+graph uses an unweighted arithmetic mean of the printed case ratios:
 
-Fixed multiplication is `1.25` times the float cost under the default
-64-bit-product configuration. Linear interpolation is `1.67` times the float
-expression because it uses a widened integer delta-product. Multiplication by
-an integer is favorable at `0.68`, while fixed division and reciprocal
-operations are slower:
-
-| Operation | Fixed/base |
+| Workload | Mean fixed/float |
 | --- | ---: |
-| `reciprocal by int` | `1.73` |
-| `reciprocal -> fixed` | `1.70` |
-| `divide by int` | `2.11` |
-| `divide` | `2.18` |
-| `mul reciprocal` | `1.22` |
+| DDA line | `0.26` |
+| Sprite scaler | `0.18` |
+| Incremental rotoscaler | `0.57` |
+| Direct rotoscaler | `1.02` |
 
-Direct conversion back to float or double is approximately neutral in this run.
-The floor, ceil, and round conversions to float or double favor the fixed path
-because they reuse the integer rounding helpers.
+For the larger DDA cases, fixed stepping costs about `0.42 ns/pixel` against
+`1.76–1.79 ns/pixel` for float. Sprite scaling is also favorable, with case
+ratios of `0.17–0.20`. Incremental rotoscaling has ratios of `0.56–0.57`;
+direct affine recomputation is close to parity at `0.98–1.04`. Small cases are
+sensitive to clock resolution, and a zero reported trial range does not imply
+zero uncertainty.
 
-## Reciprocal reuse
+Reciprocal construction costs `1.46 ns/op`, multiplication by a precomputed
+reciprocal `0.76 ns/op`, and direct fixed division `1.44 ns/op`. Using these
+checksum-inclusive loop timings as a rough estimate, reuse becomes cheaper
+at three uses because `1.46 + 0.76 * N < 1.44 * N` when `N >= 3`.
+A quantized reciprocal can produce different results from direct division,
+so that estimate alone does not establish numerical suitability.
 
-The measured fixed costs are:
+## Additional configurations
 
-- reciprocal construction: `1.46 ns/op`
-- direct division: `1.49 ns/op`
-- multiplication by a precomputed reciprocal: `0.75 ns/op`
+The signed-shift multiply, signed-shift divide, narrow arithmetic, external
+function, and external function with LTO builds are measured separately from
+the canonical run. Their complete console outputs are captured under
+`build/benchmark-*-output.txt`. The shifted division row uses nonnegative
+numerators on both sides, while the default row exercises both signs.
+Signed-shift multiplication can differ from the default by one raw unit for
+negative nonintegral products. The narrow profile changes both precision and
+scalar input range, so it is not an interchangeable default-format result.
 
-Using the measured values, reciprocal reuse wins when:
+Selected fixed-point median costs are shown below in ns/op. Separate runs can
+vary in code layout, compiler optimization, and system conditions; differences
+in unchanged operations should not be attributed to the selected macro alone.
 
-```text
-1.46 + 0.75 * N < 1.49 * N
+| Configuration | Multiply | Divide | Round to int | Multiply array | Multiply/add chain |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Default inline | 0.76 | 1.44 | 0.68 | 0.76 | 1.68 |
+| Signed-shift multiply | 0.56 | 1.55 | 0.82 | 0.56 | 1.28 |
+| Signed-shift divide | 0.76 | 1.46 | 0.85 | 0.76 | 1.67 |
+| Narrow 8-bit fraction | 0.67 | 1.27 | 0.64 | 0.19 | 1.47 |
+| External functions | 1.33 | 1.59 | 1.85 | 1.26 | 2.09 |
+| External with LTO | 0.77 | 1.45 | 0.72 | 0.76 | 1.66 |
+
+The following unweighted workload means use fixed/float ratios, rather than
+absolute times:
+
+| Configuration | DDA | Sprite scaler | Incremental rotoscaler | Direct rotoscaler |
+| --- | ---: | ---: | ---: | ---: |
+| Default inline | 0.26 | 0.18 | 0.57 | 1.02 |
+| Signed-shift multiply | 0.26 | 0.17 | 0.57 | 1.02 |
+| Signed-shift divide | 0.26 | 0.18 | 0.57 | 1.03 |
+| Narrow 8-bit fraction | 0.54 | 0.17 | 0.50 | 0.78 |
+| External functions | 2.18 | 2.00 | 2.81 | 6.23 |
+| External with LTO | 0.26 | 0.18 | 0.57 | 1.02 |
+
+External function calls are material in these hot loops on this compiler and
+CPU. LTO brings the external build close to the inline build. The signed-shift
+division option remains supported, with its nonnegative-numerator contract;
+its division row and the default row have different numerator domains, so the
+numbers are not an instruction-only A/B comparison.
+
+All supplementary runs used CPU 2, 8192 samples, 100 repeats, and the same
+five-trial timing method. The inline shifted and narrow builds come from the
+normal Makefile targets. The narrow target uses `FIX32_FRACTIONAL_BITS=8`,
+`FIX32_USE_64_BIT=0`, and `BENCHMARK_NARROW_INPUTS=1`. External builds clear
+`BENCH_CPPFLAGS`; the LTO build additionally sets `BENCH_CFLAGS="-O3 -flto"`.
+The supplementary runs can be reproduced with:
+
+```sh
+make -j4 benchmark-shift-mul benchmark-shift-div benchmark-32-bit
+make benchmark BUILD_DIR=build/external BENCH_CPPFLAGS=
+make benchmark BUILD_DIR=build/lto BENCH_CPPFLAGS= BENCH_CFLAGS="-O3 -flto"
+taskset -c 2 ./build/benchmark-shift-mul 8192 100 > build/benchmark-shift-mul-output.txt
+taskset -c 2 ./build/benchmark-shift-div 8192 100 > build/benchmark-shift-div-output.txt
+taskset -c 2 ./build/benchmark-32-bit 8192 100 > build/benchmark-32-bit-output.txt
+taskset -c 2 ./build/external/benchmark 8192 100 > build/benchmark-external-output.txt
+taskset -c 2 ./build/lto/benchmark 8192 100 > build/benchmark-lto-output.txt
 ```
 
-The break-even point is therefore two uses of the same reciprocal in this run.
-This supports precomputation for scanlines, sprites, spans, and other
-workloads that reuse a divisor many times, but not for a one-off quotient.
+## Scope and interpretation
 
-## DDA line workload
+The DDA, scaler, and rotoscaler cases compute coordinates and checksums. They
+do not fetch textures, write framebuffers, clip, blend, or filter pixels, and
+they do not check equality of fixed and float sample coordinates. Quantized
+steps can select different texels near boundaries. Setup is performed once
+before a batch of repetitions, so per-draw setup costs are heavily amortized.
 
-The DDA loop computes its step once, repeatedly adds it, and rounds each point
-to integer pixel coordinates. Ratios range from `0.66` to `0.70` for the larger
-cases, with more timing variation in the short case. The result still favors
-fixed-point stepping, but the margin is smaller and less uniform than in the
-scaler workloads.
-
-## Sprite scaler workload
-
-The sprite scaler precomputes source-coordinate steps, repeatedly accumulates
-them, and floors each source coordinate to an integer sample index.
-
-The fixed/float ratio is between `0.17` and `0.20`, or roughly a `5.0x` to `5.9x`
-advantage for the arithmetic-only fixed path in this run. The benchmark does
-not access source or destination pixels, so this ratio must not be interpreted
-as an expected whole-renderer speedup. Memory traffic, clipping, format
-conversion, and blending can dominate a real blitter.
-
-### Why the axis-aligned loop is favorable
-
-The inner loop maintains only `source_x`. Each pixel performs one source-X
-floor conversion, one fixed or float addition, and the checksum update.
-`sample_y` is constant for the row, so its conversion and row-index term can be
-amortized or hoisted. The Y accumulator advances only once per output row.
-
-For this GCC build, the fixed inner loop was vectorized with 16-byte vectors.
-The float loop was not vectorized because the general floor-to-int correction
-introduces control flow. This is a legitimate result for the tested source, but
-it is compiler- and formulation-dependent. A production scaler that can prove
-all source coordinates nonnegative could use truncating float conversion as
-floor, which may reduce the gap and make vectorization easier.
-
-The nearly flat per-pixel timings from 24-pixel to 8192-pixel rows show that
-setup and row overhead are already small for these cases. The benchmark is
-therefore mostly measuring the steady-state coordinate walker. The two step
-calculations are performed once before all 100 repetitions, so even the
-smallest scaler case amortizes setup over `57600` sampled pixels. A real
-renderer that recalculates steps for every small draw will expose more setup
-cost than this benchmark.
-
-### Precision and coverage limits
-
-With 16 fractional bits, the direct step division introduces less than one raw
-unit of truncation per axis. Repeated addition makes that quantization error
-accumulate with output width or height, although it remains small for the
-tested dimensions. A coordinate near a texel boundary can still select a
-different sample from the float path.
-
-The benchmark does not compare the sampled coordinates for equality. It also
-tests only positive-origin upscaling with nearest-neighbor-style floor
-sampling. Downscaling, negative or clipped origins, mirrored steps, edge
-handling, and bilinear filtering need separate correctness and performance
-measurements.
-
-## Rotoscaler workload
-
-The rotoscaler now reports two loop shapes.
-
-The incremental inverse-mapping path adds the affine step vectors across the
-row and down the column. Its fixed/float ratio is about `0.57` to `0.58`,
-which is still a clear arithmetic-only advantage for the fixed path.
-
-The direct inverse-mapping path recomputes the source coordinate from the
-destination `x` and `y` each pixel. Its fixed/float ratio is about `0.96` to
-`1.01`, which is roughly parity on this compiler and build. The extra
-per-pixel multiplications make this form more expensive than the incremental
-walker, and the fixed advantage is effectively gone once the direct float path
-is measured on the same terms.
-
-### Why the rotoscaler gap changes
-
-The incremental loop keeps `u` and `v` as running coordinates. That matches the
-common affine-walker shape used in software blitters and avoids recomputing the
-full transform for every pixel.
-
-The direct loop trades recurrence for recomputation. It is simpler to reason
-about, but it spends more work per pixel on multiply operations. In the current
-build, the float direct path is roughly equal to or slightly faster than the
-fixed direct path, so this is mostly an upper bound on the cost of explicit
-affine recomputation rather than a fixed-point win.
-
-The fixed setup performs angle conversion, step calculation, and origin
-calculation with multiplication and division. However, the benchmark computes
-that setup once before all 100 repetitions. It is heavily amortized and is not
-the main explanation for the measured ratios. A real renderer repeats setup
-once per draw, so very small sprites, short spans, or highly fragmented batches
-will show a smaller advantage than these steady-state results.
-
-### Precision and rendering implications
-
-The rotoscaler quantizes sine, cosine, scale, four affine step components, and
-the origin. Step error then accumulates across columns and rows in the
-incremental form, while the direct form recomputes the same affine expression
-for every pixel. Both give stable and deterministic sampling, but they can also
-produce a different texel choice near boundaries, visible edge drift on long
-spans, or asymmetric results for transforms that are mathematically equivalent.
-
-The benchmark deliberately omits clipping, wrapping, clamping, source fetches,
-destination writes, transparency, and interpolation. Rotated traversal also
-has less predictable memory locality than axis-aligned scaling, so source-cache
-behavior may dominate a real implementation and reduce the arithmetic
-advantage. Bilinear filtering would add fractional-weight calculation and four
-source reads, changing the operation balance substantially.
-
-## Interpretation
-
-This run supports a hybrid use of the library. Float remains the simpler choice
-for broad transform, animation, camera, and setup code. Fixed point is most
-attractive after final step vectors and starting coordinates have been
-computed, when a hot loop repeatedly adds values and converts them to integer
-sample positions.
-
-The useful fixed-point targets are:
-
-- DDA, edge, and span walkers
-- nearest-neighbor source-coordinate stepping
-- affine and rotated sprite stepping
-- subpixel accumulators with integer-facing output
-
-The less favorable targets are:
-
-- one-off fixed division or reciprocal construction
-- multiply-heavy general-purpose math
-- code that repeatedly crosses between float and fixed representations
-
-These measurements are specific to this compiler, processor, optimization
-level, and arithmetic-only benchmark structure. They should be rerun on each
-target platform before making an engine-wide representation decision.
-
-## Final considerations
-
-Modern CPUs have fast floating-point pipelines, wide SIMD instruction sets,
-and compilers that optimize float arithmetic aggressively. Fixed point should
-therefore not be justified by the old assumption that integer arithmetic is
-always faster than floating point. The scalar results in this report directly
-contradict that assumption for multiply, divide, and reciprocal operations.
-
-Fixed point remains relevant because some game-engine workloads are not merely
-performing general arithmetic. Rasterizers, sprite scalers, span walkers, tile
-samplers, and subpixel accumulators repeatedly advance coordinates and then
-convert them into integer indices. In those loops, a fixed-point representation
-keeps the value in the same integer domain as the final output. Addition,
-masking, and extraction of the whole part can replace repeated floating-point
-rounding or conversion work. The DDA, scaler, and rotoscaler measurements show
-that this structural advantage still matters on the contemporary CPU used for
-this report.
-
-Small per-iteration savings also matter when multiplied by the number of
-pixels, particles, collision candidates, or simulation entities processed in a
-frame. Reducing a hot loop by even a few instructions can improve frame-time
-headroom, leave more CPU time for gameplay and rendering, or make performance
-less sensitive to large bursts of work. The arithmetic-only workload ratios
-are not whole-engine speedup predictions, but they identify loops where further
-integration testing is justified.
-
-Fixed point can also provide an explicit quantization model. Positions, rates,
-and accumulated values have a known resolution, and the rounding policy is
-visible in the API. This can be useful for deterministic gameplay, replay,
-lockstep synchronization, rollback state, and tests that require identical raw
-results. That benefit is independent of whether floating-point arithmetic is
-fast. It comes from controlling representation and rounding rather than from
-instruction throughput.
-
-Determinism is not automatic, however. Inputs must remain within the unchecked
-range of the library, overflow must be avoided, and portable configurations
-must be selected when code runs across different C implementations. In
-particular, the optional signed-shift paths deliberately rely on behavior that
-is implementation-defined or restricted to nonnegative inputs. Code that needs
-cross-platform reproducibility should use the defined default multiply and
-division paths and the portable floor/ceil path where arithmetic signed shifts
-cannot be assumed.
-
-The practical conclusion is not to replace all engine math with fixed point.
-Float remains appropriate for transforms, cameras, animation, matrices,
-trigonometry, and other broad or multiply-heavy calculations. Fixed point is
-most valuable as a targeted representation for bounded, integer-facing,
-addition-heavy systems. A hybrid engine can perform high-level setup in float,
-convert stable starting values and increments once, and use fixed point only in
-the hot or deterministic portion of the pipeline.
+These results support measuring fixed point in bounded, integer-facing
+stepping loops. They also show why volatile-load scalar timings should not
+be generalized to bulk arithmetic throughput. Memory access, SIMD choices,
+compiler optimization, rounding policy, and input ranges all affect the
+comparison. The library remains unchecked: callers must respect result and
+intermediate ranges and pass nonzero divisors. The optional signed-shift
+division path remains available for workloads that satisfy its documented
+nonnegative-numerator contract.

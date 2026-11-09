@@ -28,19 +28,69 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 volatile int64_t g_int_sink = 0;
 volatile double g_float_sink = 0.0;
 
+benchmark_measurement_t benchmark_measure_pair(benchmark_fn fixed_fn,
+                                               benchmark_fn float_fn,
+                                               const void *context,
+                                               size_t repeat_count)
+{
+    const benchmark_fn functions[] = { fixed_fn, float_fn };
+    double seconds[2][BENCHMARK_TRIAL_COUNT];
+    benchmark_measurement_t result;
+    size_t trial;
+    size_t side;
+
+    fixed_fn(context, 1);
+    float_fn(context, 1);
+    for (trial = 0; trial < BENCHMARK_TRIAL_COUNT; ++trial) {
+        for (side = 0; side < 2; ++side) {
+            const size_t which = (trial + side) % 2;
+            const clock_t start = clock();
+
+            functions[which](context, repeat_count);
+            seconds[which][trial] = (double)(clock() - start) / CLOCKS_PER_SEC;
+        }
+    }
+    for (side = 0; side < 2; ++side) {
+        for (trial = 1; trial < BENCHMARK_TRIAL_COUNT; ++trial) {
+            const double value = seconds[side][trial];
+            size_t position = trial;
+
+            while (position > 0 && seconds[side][position - 1] > value) {
+                seconds[side][position] = seconds[side][position - 1];
+                --position;
+            }
+            seconds[side][position] = value;
+        }
+    }
+    result.fixed_seconds = seconds[0][BENCHMARK_TRIAL_COUNT / 2];
+    result.float_seconds = seconds[1][BENCHMARK_TRIAL_COUNT / 2];
+    result.fixed_spread = seconds[0][BENCHMARK_TRIAL_COUNT - 1] - seconds[0][0];
+    result.float_spread = seconds[1][BENCHMARK_TRIAL_COUNT - 1] - seconds[1][0];
+    return result;
+}
+
+void benchmark_print_spread(const benchmark_measurement_t *measurement)
+{
+    printf("  trial range: fixed %.3f us, base %.3f us (max - min)\n",
+           measurement->fixed_spread * 1.0e6, measurement->float_spread * 1.0e6);
+}
+
 static uint32_t lcg_next(uint32_t *state)
 {
     *state = (*state * 1664525u) + 1013904223u;
-    return *state;
+    // Use the high bits: the low bits of an LCG repeat in short cycles and
+    // correlate with the fixed number of draws made for each input sample.
+    return *state >> 8;
 }
 
 static float random_float(uint32_t *state, float minimum, float maximum)
 {
-    const float unit = (float)(lcg_next(state) & 0x00ffffffu) / 16777215.0f;
+    const float unit = (float)lcg_next(state) / 16777215.0f;
 
     return minimum + (unit * (maximum - minimum));
 }
@@ -108,6 +158,8 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         checked_alloc(sample_count, sizeof(*data->fixed_div_inputs));
     data->fixed_reciprocals =
         checked_alloc(sample_count, sizeof(*data->fixed_reciprocals));
+    data->fixed_results = checked_alloc(sample_count, sizeof(*data->fixed_results));
+    data->float_results = checked_alloc(sample_count, sizeof(*data->float_results));
 
     if (data->int_inputs == NULL || data->small_int_inputs == NULL ||
         data->int_div_inputs == NULL || data->rational_numerators == NULL ||
@@ -116,7 +168,8 @@ int benchmark_data_init(benchmark_data_t *data, size_t sample_count,
         data->lerp_inputs == NULL || data->div_inputs == NULL ||
         data->float_reciprocals == NULL || data->fixed_inputs == NULL ||
         data->sum_fixed_inputs == NULL || data->fixed_lerp_inputs == NULL ||
-        data->fixed_div_inputs == NULL || data->fixed_reciprocals == NULL) {
+        data->fixed_div_inputs == NULL || data->fixed_reciprocals == NULL ||
+        data->fixed_results == NULL || data->float_results == NULL) {
         return 0;
     }
 
@@ -181,6 +234,8 @@ void benchmark_data_destroy(benchmark_data_t *data)
     free(data->fixed_lerp_inputs);
     free(data->fixed_div_inputs);
     free(data->fixed_reciprocals);
+    free(data->fixed_results);
+    free(data->float_results);
 }
 
 int benchmark_parse_size_arg(const char *text, size_t *value)

@@ -25,7 +25,6 @@
 #include "common.h"
 
 #include <stdio.h>
-#include <time.h>
 
 typedef struct rotoscale_case {
     const char *label;
@@ -37,26 +36,9 @@ typedef struct rotoscale_case {
     float sin_angle;
 } rotoscale_case_t;
 
-typedef void (*rotoscale_benchmark_fn)(const rotoscale_case_t *rotoscale_case,
-                                       size_t repeat_count);
-
-static double run_rotoscale_benchmark(rotoscale_benchmark_fn fn,
-                                      const rotoscale_case_t *rotoscale_case,
-                                      size_t repeat_count)
+static void bench_fixed_rotoscaler(const void *context, size_t repeat_count)
 {
-    const clock_t start = clock();
-    const double ticks_per_second = (double)CLOCKS_PER_SEC;
-    clock_t finish;
-
-    fn(rotoscale_case, repeat_count);
-    finish = clock();
-
-    return (double)(finish - start) / ticks_per_second;
-}
-
-static void bench_fixed_rotoscaler(const rotoscale_case_t *rotoscale_case,
-                                   size_t repeat_count)
-{
+    const rotoscale_case_t *rotoscale_case = context;
     const fix32_t cos_angle =
         fix32_round_from_float(rotoscale_case->cos_angle);
     const fix32_t sin_angle =
@@ -116,9 +98,9 @@ static void bench_fixed_rotoscaler(const rotoscale_case_t *rotoscale_case,
     g_int_sink = checksum;
 }
 
-static void bench_fixed_rotoscaler_direct(const rotoscale_case_t *rotoscale_case,
-                                          size_t repeat_count)
+static void bench_fixed_rotoscaler_direct(const void *context, size_t repeat_count)
 {
+    const rotoscale_case_t *rotoscale_case = context;
     const fix32_t cos_angle =
         fix32_round_from_float(rotoscale_case->cos_angle);
     const fix32_t sin_angle =
@@ -175,9 +157,9 @@ static void bench_fixed_rotoscaler_direct(const rotoscale_case_t *rotoscale_case
     g_int_sink = checksum;
 }
 
-static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
-                                   size_t repeat_count)
+static void bench_float_rotoscaler(const void *context, size_t repeat_count)
 {
+    const rotoscale_case_t *rotoscale_case = context;
     const float scale_x =
         (float)rotoscale_case->src_width / (float)rotoscale_case->dest_width;
     const float scale_y =
@@ -227,9 +209,9 @@ static void bench_float_rotoscaler(const rotoscale_case_t *rotoscale_case,
     g_int_sink = checksum;
 }
 
-static void bench_float_rotoscaler_direct(const rotoscale_case_t *rotoscale_case,
-                                          size_t repeat_count)
+static void bench_float_rotoscaler_direct(const void *context, size_t repeat_count)
 {
+    const rotoscale_case_t *rotoscale_case = context;
     const float scale_x =
         (float)rotoscale_case->src_width / (float)rotoscale_case->dest_width;
     const float scale_y =
@@ -277,8 +259,8 @@ static void bench_float_rotoscaler_direct(const rotoscale_case_t *rotoscale_case
 }
 
 static void print_rotoscale_results(const char *title,
-                                    rotoscale_benchmark_fn fixed_fn,
-                                    rotoscale_benchmark_fn float_fn,
+                                    benchmark_fn fixed_fn,
+                                    benchmark_fn float_fn,
                                     size_t repeat_count)
 {
     static const rotoscale_case_t rotoscale_cases[] = {
@@ -309,10 +291,11 @@ static void print_rotoscale_results(const char *title,
             (double)(rotoscale_case->dest_width *
                      rotoscale_case->dest_height) *
             (double)repeat_count;
-        const double fixed_seconds =
-            run_rotoscale_benchmark(fixed_fn, rotoscale_case, repeat_count);
-        const double float_seconds =
-            run_rotoscale_benchmark(float_fn, rotoscale_case, repeat_count);
+        const benchmark_measurement_t measurement =
+            benchmark_measure_pair(fixed_fn, float_fn,
+                                   rotoscale_case, repeat_count);
+        const double fixed_seconds = measurement.fixed_seconds;
+        const double float_seconds = measurement.float_seconds;
         const double fixed_ns = (fixed_seconds * 1.0e9) / operations;
         const double float_ns = (float_seconds * 1.0e9) / operations;
         const double ratio = (float_ns > 0.0) ? (fixed_ns / float_ns) : 0.0;
@@ -322,6 +305,7 @@ static void print_rotoscale_results(const char *title,
                (unsigned long)(rotoscale_case->dest_width *
                                rotoscale_case->dest_height),
                fixed_ns, float_ns, ratio);
+        benchmark_print_spread(&measurement);
     }
 }
 
